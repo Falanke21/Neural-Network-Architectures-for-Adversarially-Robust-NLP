@@ -1,3 +1,4 @@
+# Reference: https://github.com/hyunwoongko/transformer
 import torch
 import torch.nn as nn
 
