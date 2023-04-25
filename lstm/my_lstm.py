@@ -10,7 +10,7 @@ class MyLSTM(torch.nn.Module):
         super(MyLSTM, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        self.embedding = torch.nn.Embedding(vocab_size, embedding_size, padding_idx=0)
+        self.embedding = torch.nn.Embedding(vocab_size, embedding_size, padding_idx=1)
         self.lstm = torch.nn.LSTM(
             embedding_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
         self.fc = torch.nn.Linear(hidden_size, num_classes)

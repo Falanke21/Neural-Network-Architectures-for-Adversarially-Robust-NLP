@@ -14,7 +14,7 @@ class MyTransformer(nn.Module):
         self.n_head = n_head
         self.drop_prob = drop_prob
 
-        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.embedding = nn.Embedding(vocab_size, d_model, padding_idx=1)
         self.positional_encoding = PositionalEncoding(
             d_model, 512, device)
         self.encoder = EncoderLayer(d_model, ffn_hidden, n_head, drop_prob)
