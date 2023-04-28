@@ -13,6 +13,7 @@ def yield_tokens(df):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=str, required=True)
+    parser.add_argument('--vocab', type=str, required=True)
     args = parser.parse_args()
     df = pd.read_csv(args.csv)
     # df format is:
@@ -25,9 +26,9 @@ if __name__ == '__main__':
     # Build Vocab
     token_generator = yield_tokens(df)
     print("start building vocab")
-    vocab = build_vocab_from_iterator(token_generator, specials=['<pad>', '<unk>'], min_freq=5)
+    vocab = build_vocab_from_iterator(token_generator, specials=['<pad>', '<unk>'], min_freq=5, max_tokens=8000)
     # save vocab
-    with open('vocab10k.pkl', 'wb') as f:
+    with open(args.vocab, 'wb') as f:
         pickle.dump(vocab, f)
 
     # # load vocab

@@ -9,6 +9,7 @@ def main(num_records_per_iteration=10000):
     parser.add_argument('--csv', type=str, required=True)
     args = parser.parse_args()
 
+    total_records = 0
     with open(args.json, 'r') as f:
         df = pd.DataFrame()
         for line in f:
@@ -16,8 +17,8 @@ def main(num_records_per_iteration=10000):
 
             # only keep the stars field and the text field in the data dict, drop the rest
             data = {k: data[k] for k in ['stars', 'text']}
-            # change the star field to be 0 or 1, where greater or equal to 4 is 1, and less than 4 is 0
-            data['stars'] = 1 if data['stars'] >= 4 else 0  
+            # change the star field to be 0 or 1, where [3-5] is 1, and [1-2] is 0
+            data['stars'] = 1 if data['stars'] >= 3 else 0  
             # change the name of the stars field to label
             data['label'] = data.pop('stars')
 
@@ -25,6 +26,8 @@ def main(num_records_per_iteration=10000):
             if len(df) > num_records_per_iteration:  # process 10000 records at a time
                 df.to_csv(args.csv, mode='a', index=False, header=True)
                 df = pd.DataFrame()
+                total_records += num_records_per_iteration
+                print(f"Processed {total_records} records")
         
         # process any remaining records
         if not df.empty:
