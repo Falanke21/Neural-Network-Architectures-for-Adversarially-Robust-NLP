@@ -1,31 +1,30 @@
 import torch
 
-USE_GPU = False
-device = torch.device(
-    'cuda' if USE_GPU and torch.cuda.is_available() else 'cpu')
-
 
 class MyLSTM(torch.nn.Module):
-    def __init__(self, vocab_size, embedding_size, hidden_size, num_layers, num_classes):
+    def __init__(self, vocab_size, embedding_size, hidden_size, num_layers, num_classes, device):
         super(MyLSTM, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        self.embedding = torch.nn.Embedding(vocab_size, embedding_size, padding_idx=1)
+        self.embedding = torch.nn.Embedding(
+            vocab_size, embedding_size, padding_idx=0)
         self.lstm = torch.nn.LSTM(
             embedding_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
-        self.fc = torch.nn.Linear(hidden_size, num_classes)
+        self.fc = torch.nn.Linear(hidden_size*2, num_classes)
+        self.device = device
 
     def forward(self, x):
         batch_size = x.size(0)
         # x shape (batch_size, seq_length, vocab_size)
+        x = x.long()
         x = self.embedding(x)  # (batch_size, seq_length, embedding_size)
 
         # h0, c0 shape (num_layers*2, batch_size, hidden_size)
         # Set initial states
         h0 = torch.zeros(self.num_layers*2, batch_size,
-                         self.hidden_size).to(device)
+                         self.hidden_size).to(self.device)
         c0 = torch.zeros(self.num_layers*2, batch_size,
-                         self.hidden_size).to(device)
+                         self.hidden_size).to(self.device)
 
         # Forward propagate LSTM
         # out: tensor of shape (batch_size, seq_length, hidden_size*2)

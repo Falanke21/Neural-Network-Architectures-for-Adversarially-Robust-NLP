@@ -17,7 +17,9 @@ def main(num_records_per_iteration=10000):
             # only keep the stars field and the text field in the data dict, drop the rest
             data = {k: data[k] for k in ['stars', 'text']}
             # change the star field to be 0 or 1, where greater or equal to 4 is 1, and less than 4 is 0
-            data['stars'] = 1 if data['stars'] >= 4 else 0
+            data['stars'] = 1 if data['stars'] >= 4 else 0  
+            # change the name of the stars field to label
+            data['label'] = data.pop('stars')
 
             df = df.append(data, ignore_index=True)
             if len(df) > num_records_per_iteration:  # process 10000 records at a time

@@ -3,7 +3,7 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
 
-def tokenize(text):
+def tokenize(text: str) -> list:
     '''
     Takes in a string of text, then performs the following:
     1. Remove all punctuation
