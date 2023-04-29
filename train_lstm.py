@@ -1,3 +1,4 @@
+import numpy as np
 import pickle
 import pandas as pd
 import torch
@@ -41,11 +42,16 @@ class YelpReviewDataset(Dataset):
 
 if __name__ == '__main__':
     # load vocab
-    with open('data/vocab10k.pkl', 'rb') as f:
+    with open('data/vocab200k.pkl', 'rb') as f:
         vocab = pickle.load(f)
 
     # load data
-    df = pd.read_csv('data/data10k.csv')
+    df = pd.read_csv('data/data200k.csv')
+    # there are some rows with label = 'label', we need to remove them
+    df = df[df['label'] != 'label']
+    # convert label to int
+    df['label'] = df['label'].astype(np.float64)
+
     train_data, _ = train_test_split(
         df, test_size=0.1, random_state=42)
 
@@ -67,6 +73,7 @@ if __name__ == '__main__':
         train_data_neg_upsampled = train_data_neg.sample(
             n=int(len(train_data_neg) * Config.UPSAMPLE_RATIO), replace=True)
         train_data = pd.concat([train_data_pos, train_data_neg_upsampled])
+        print(f"Upsampled negative reviews by {Config.UPSAMPLE_RATIO}x")
 
     # Reset dataframe index so that we can use df.loc[idx, 'text']
     train_data = train_data.reset_index(drop=True)
@@ -112,7 +119,7 @@ if __name__ == '__main__':
             optimizer.step()
 
             # update tqdm with loss value every 20 batches
-            if (i+1) % 3 == 0:
+            if (i+1) % 200 == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
                             Batch {i+1}/{len(train_loader)}, \
                             Batch Loss: {loss.item():.4f}, \

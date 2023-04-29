@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # Build Vocab
     token_generator = yield_tokens(df)
     print("start building vocab")
-    vocab = build_vocab_from_iterator(token_generator, specials=['<pad>', '<unk>'], min_freq=5, max_tokens=8000)
+    vocab = build_vocab_from_iterator(token_generator, specials=['<pad>', '<unk>'], min_freq=10, max_tokens=8000)
     # save vocab
     with open(args.vocab, 'wb') as f:
         pickle.dump(vocab, f)

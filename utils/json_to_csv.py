@@ -17,8 +17,13 @@ def main(num_records_per_iteration=10000):
 
             # only keep the stars field and the text field in the data dict, drop the rest
             data = {k: data[k] for k in ['stars', 'text']}
-            # change the star field to be 0 or 1, where [3-5] is 1, and [1-2] is 0
-            data['stars'] = 1 if data['stars'] >= 3 else 0  
+            # change the star field to be 0 or 1, where [4-5] is 1, and [1-2] is 0, and [3] is ignored
+            if data['stars'] >= 4:
+                data['stars'] = 1
+            elif data['stars'] <= 2:
+                data['stars'] = 0
+            else:
+                continue
             # change the name of the stars field to label
             data['label'] = data.pop('stars')
 
