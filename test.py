@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 import pickle
 import pandas as pd
 import torch
@@ -35,6 +36,11 @@ if __name__ == "__main__":
 
     # load data
     df = pd.read_csv(args.csv)
+    # there are some rows with label = 'label', we need to remove them
+    df = df[df['label'] != 'label']
+    # convert label to int
+    df['label'] = df['label'].astype(np.float64)
+
     _, test_data = train_test_split(df, test_size=0.2, random_state=42)
     # Reset dataframe index so that we can use df.loc[idx, 'text']
     test_data = test_data.reset_index(drop=True)
