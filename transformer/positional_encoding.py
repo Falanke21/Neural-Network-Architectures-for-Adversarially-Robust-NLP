@@ -37,7 +37,7 @@ class PositionalEncoding(nn.Module):
         # self.encoding
         # [max_len = 512, model_dim = 512]
 
-        batch_size, seq_len = x.size()
+        batch_size, seq_len, d_model = x.size()
         # [batch_size = 128, seq_len = 30]
 
         return self.encoding[:seq_len, :]

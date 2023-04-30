@@ -1,6 +1,7 @@
 # Reference: https://github.com/hyunwoongko/transformer
 import torch
 import torch.nn as nn
+import math
 
 
 class ScaleDotProductAttention(nn.Module):
@@ -23,7 +24,7 @@ class ScaleDotProductAttention(nn.Module):
 
         # 1. dot product Query with Key^T to compute similarity
         k_t = k.transpose(2, 3)  # transpose
-        score = (q @ k_t) / torch.sqrt(d_tensor)  # scaled dot product
+        score = (q @ k_t) / math.sqrt(d_tensor)  # scaled dot product
 
         # 2. apply masking (opt)
         if mask is not None:

@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 
-from multi_head_attention import MultiHeadAttention
-from position_wise_feed_forward import PositionwiseFeedForward
-from layer_norm import LayerNorm
+from .multi_head_attention import MultiHeadAttention
+from .position_wise_feed_forward import PositionwiseFeedForward
+from .layer_norm import LayerNorm
 
 USE_GPU = False
 device = torch.device(

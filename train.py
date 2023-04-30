@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pickle
 import pandas as pd
@@ -7,9 +8,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 
-from lstm.my_lstm import MyLSTM
 from utils.tokenizer import tokenize
-from config import Config
 
 
 class YelpReviewDataset(Dataset):
@@ -41,12 +40,25 @@ class YelpReviewDataset(Dataset):
 
 
 if __name__ == '__main__':
-    # load vocab
-    with open('data/vocab200k.pkl', 'rb') as f:
-        vocab = pickle.load(f)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--csv', type=str, required=True)
+    parser.add_argument('--vocab', type=str, required=True)
+    parser.add_argument('--model-choice', type=str,
+                        required=True, choices=['lstm', 'transformer'])
 
+    args = parser.parse_args()
+    if args.model_choice == 'lstm':
+        from config.lstm_config import LSTMConfig as Config
+        from lstm.my_lstm import MyLSTM
+    elif args.model_choice == 'transformer':
+        from config.transformer_config import TransformerConfig as Config
+        from transformer.my_transformer import MyTransformer
+
+    # load vocab
+    with open(args.vocab, 'rb') as f:
+        vocab = pickle.load(f)
     # load data
-    df = pd.read_csv('data/data200k.csv')
+    df = pd.read_csv(args.csv)
     # there are some rows with label = 'label', we need to remove them
     df = df[df['label'] != 'label']
     # convert label to int
@@ -88,10 +100,16 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         train_dataset, batch_size=Config.BATCH_SIZE, shuffle=True)
 
-    # define lstm model
-    model = MyLSTM(vocab_size=len(vocab), embedding_size=Config.LSTM_EMBEDDING_SIZE,
-                   hidden_size=Config.LSTM_HIDDEN_SIZE, num_layers=Config.LSTM_NUM_LAYERS,
-                   dropout=Config.LSTM_DROUPOUT, num_classes=1, device=device)
+    # define model
+    if args.model_choice == 'lstm':
+        model = MyLSTM(vocab_size=len(vocab), embedding_size=Config.LSTM_EMBEDDING_SIZE,
+                       hidden_size=Config.LSTM_HIDDEN_SIZE, num_layers=Config.LSTM_NUM_LAYERS,
+                       dropout=Config.LSTM_DROUPOUT, num_classes=1, device=device)
+    elif args.model_choice == 'transformer':
+        model = MyTransformer(vocab_size=len(vocab), d_model=Config.D_MODEL,
+                              ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
+                              drop_prob=Config.DROPOUT, max_len=Config.TRAIN_SEQ_LENGTH, 
+                              device=device)
     # print num of parameters
     print(
         f'Number of parameters: {sum(p.numel() for p in model.parameters())}')
@@ -128,8 +146,8 @@ if __name__ == '__main__':
               Average Loss: {total_loss / len(train_loader):.4f}")
         # save checkpoint
         torch.save(model.state_dict(),
-                   f'models/checkpoints/lstm_model_epoch{epoch+1}.pt')
+                   f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
 
     # save model
-    torch.save(model.state_dict(), 'models/lstm_model.pt')
-    print(f"Model saved to models/lstm_model.pt")
+    torch.save(model.state_dict(), f'models/{args.model_choice}_model.pt')
+    print(f"Model saved to models/{args.model_choice}_model.pt")
