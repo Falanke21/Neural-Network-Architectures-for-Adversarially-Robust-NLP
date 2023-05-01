@@ -12,10 +12,10 @@ from utils.tokenizer import tokenize
 
 
 class YelpReviewDataset(Dataset):
-    def __init__(self, df, vocab, train=True):
+    def __init__(self, df, vocab, max_seq_length):
         self.df = df
         self.vocab = vocab
-        self.seq_length = Config.TRAIN_SEQ_LENGTH if train else Config.TEST_SEQ_LENGTH
+        self.seq_length = max_seq_length
 
     def __len__(self):
         return len(self.df)
@@ -45,6 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--vocab', type=str, required=True)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
+    parser.add_argument('--load-trained', action='store_true', default=False)
 
     args = parser.parse_args()
     if args.model_choice == 'lstm':
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     print(
         f"Num negative reviews in training set: {len(train_data[train_data['label'] == 0])}")
 
-    train_dataset = YelpReviewDataset(train_data, vocab)
+    train_dataset = YelpReviewDataset(train_data, vocab, Config.TRAIN_SEQ_LENGTH)
 
     # get dataloader from dataset
     train_loader = DataLoader(
@@ -110,6 +111,10 @@ if __name__ == '__main__':
                               ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
                               drop_prob=Config.DROPOUT, max_len=Config.TRAIN_SEQ_LENGTH, 
                               device=device)
+    if args.load_trained:
+        model_path = 'models/' + args.model_choice + '_model.pt'
+        model.load_state_dict(torch.load(model_path))
+        print(f"Loaded trained model from {model_path}!")
     # print num of parameters
     print(
         f'Number of parameters: {sum(p.numel() for p in model.parameters())}')
