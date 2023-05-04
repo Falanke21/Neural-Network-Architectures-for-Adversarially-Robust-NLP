@@ -28,6 +28,7 @@ class MyTransformer(nn.Module):
         self.embedding = nn.Embedding(vocab_size, d_model, padding_idx=0)
         self.positional_encoding = PositionalEncoding(
             d_model, max_len, device)
+        self.drop_out = nn.Dropout(p=drop_prob)
         self.encoder = EncoderLayer(d_model, ffn_hidden, n_head, drop_prob)
         self.fc = nn.Linear(d_model, output_dim)
 
@@ -35,6 +36,7 @@ class MyTransformer(nn.Module):
         # x is a batched one-hot vector (batch_size, seq_len, vocab_size)
         x = self.embedding(x)  # (batch_size, seq_len, d_model)
         x = x + self.positional_encoding(x)
+        x = self.drop_out(x)
         x = self.encoder(x, None)
 
         # taking the mean across the sequence dimension

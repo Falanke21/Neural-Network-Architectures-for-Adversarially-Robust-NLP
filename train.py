@@ -95,7 +95,8 @@ if __name__ == '__main__':
     print(
         f"Num negative reviews in training set: {len(train_data[train_data['label'] == 0])}")
 
-    train_dataset = YelpReviewDataset(train_data, vocab, Config.TRAIN_SEQ_LENGTH)
+    train_dataset = YelpReviewDataset(
+        train_data, vocab, Config.TRAIN_SEQ_LENGTH)
 
     # get dataloader from dataset
     train_loader = DataLoader(
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     elif args.model_choice == 'transformer':
         model = MyTransformer(vocab_size=len(vocab), d_model=Config.D_MODEL,
                               ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
-                              drop_prob=Config.DROPOUT, max_len=Config.TRAIN_SEQ_LENGTH, 
+                              drop_prob=Config.DROPOUT, max_len=Config.TRAIN_SEQ_LENGTH,
                               device=device)
     if args.load_trained:
         model_path = 'models/' + args.model_choice + '_model.pt'
@@ -122,7 +123,9 @@ if __name__ == '__main__':
     model.to(device)
     # define binary cross entropy loss function and optimizer
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=Config.LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=Config.LEARNING_RATE,
+                                 betas=Config.BETAS, eps=Config.ADAM_EPSILON,
+                                 weight_decay=Config.WEIGHT_DECAY)
 
     # training loop
     print("Training...")
@@ -132,6 +135,12 @@ if __name__ == '__main__':
             data = data.to(device)
             labels = labels.unsqueeze(1)  # (batch_size, 1)
             labels = labels.to(device)
+
+            # Apply label smoothing by changing labels from 0, 1 to 0.1, 0.9
+            if Config.LABEL_SMOOTHING:
+                labels = (1 - Config.LABEL_SMOOTHING_EPSILON) * labels + \
+                    Config.LABEL_SMOOTHING_EPSILON * (1 - labels)
+
             # forward
             outputs = model(data)
             loss = criterion(outputs, labels)
@@ -139,6 +148,10 @@ if __name__ == '__main__':
             # backward
             optimizer.zero_grad()
             loss.backward()
+            if Config.GRADIENT_CLIP:
+                # clip gradient norm
+                nn.utils.clip_grad_norm_(model.parameters(),
+                                         max_norm=Config.GRADIENT_CLIP_VALUE)
             optimizer.step()
 
             # update tqdm with loss value every 20 batches

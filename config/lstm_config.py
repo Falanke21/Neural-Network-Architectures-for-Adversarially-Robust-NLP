@@ -5,8 +5,16 @@ class LSTMConfig:
     TEST_SEQ_LENGTH = 450
     BATCH_SIZE = 200
     LEARNING_RATE = 0.001
+
+    BETAS = (0.9, 0.999)
+    ADAM_EPSILON = 1e-8
+    WEIGHT_DECAY = 0
+    GRADIENT_CLIP = False
+    GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True
     UPSAMPLE_RATIO = 2  # 1 means no upsampling
+    LABEL_SMOOTHING = False
+    LABEL_SMOOTHING_EPSILON = 0.1  # 0 means no smoothing
 
     LSTM_HIDDEN_SIZE = 300
     LSTM_EMBEDDING_SIZE = 300
