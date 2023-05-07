@@ -39,6 +39,69 @@ class YelpReviewDataset(Dataset):
         return indices, label
 
 
+def train(model, Config, criterion, optimizer, device, train_loader, test_loader=None):
+    print("Training...")
+    for epoch in range(Config.NUM_EPOCHS):
+        total_loss = 0
+        model.train()
+        for i, (data, labels) in enumerate(tqdm(train_loader)):
+            data = data.to(device)
+            labels = labels.unsqueeze(1)  # (batch_size, 1)
+            labels = labels.to(device)
+
+            # Apply label smoothing by changing labels from 0, 1 to 0.1, 0.9
+            if Config.LABEL_SMOOTHING:
+                labels = (1 - Config.LABEL_SMOOTHING_EPSILON) * labels + \
+                    Config.LABEL_SMOOTHING_EPSILON * (1 - labels)
+
+            # forward
+            outputs = model(data)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+            if Config.GRADIENT_CLIP:
+                # clip gradient norm
+                nn.utils.clip_grad_norm_(model.parameters(),
+                                         max_norm=Config.GRADIENT_CLIP_VALUE)
+            optimizer.step()
+
+            # update tqdm with loss value every 20 batches
+            if (i+1) % 200 == 0:
+                tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
+                            Batch {i+1}/{len(train_loader)}, \
+                            Batch Loss: {loss.item():.4f}, \
+                            Average Loss: {total_loss / (i+1):.4f}")
+        print(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
+              Average Loss: {total_loss / len(train_loader):.4f}")
+        # save checkpoint
+        torch.save(model.state_dict(),
+                   f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
+
+        # evaluate on test set if necessary
+        if args.test_in_training:
+            model.eval()
+            with torch.no_grad():
+                total_loss = total = TP = TN = 0
+                print(f"Testing at epoch {epoch + 1}...")
+                for data, labels in tqdm(test_loader):
+                    data = data.to(device)
+                    labels = labels.unsqueeze(1).to(device)
+                    outputs = model(data)
+
+                    loss = criterion(outputs, labels)
+                    total_loss += loss.item()
+
+                    predicted = torch.round(torch.sigmoid(outputs))
+                    total += labels.size(0)
+
+                    TP += ((predicted == 1) & (labels == 1)).sum().item()
+                    TN += ((predicted == 0) & (labels == 0)).sum().item()
+                print(f"Test Accuracy: {(TP + TN) / total:.4f}")
+                print(f"Test Loss: {total_loss / len(test_loader):.4f}")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=str, required=True)
@@ -46,6 +109,8 @@ if __name__ == '__main__':
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
     parser.add_argument('--load-trained', action='store_true', default=False)
+    parser.add_argument('--test-in-training', action='store_true',
+                        default=False, help='Do a test run after every epoch')
 
     args = parser.parse_args()
     if args.model_choice == 'lstm':
@@ -65,7 +130,7 @@ if __name__ == '__main__':
     # convert label to int
     df['label'] = df['label'].astype(np.float64)
 
-    train_data, _ = train_test_split(
+    train_data, test_data = train_test_split(
         df, test_size=0.1, random_state=42)
 
     device = torch.device(
@@ -102,6 +167,14 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         train_dataset, batch_size=Config.BATCH_SIZE, shuffle=True)
 
+    if args.test_in_training:
+        test_data = test_data.reset_index(drop=True)
+        # use TRAIN_SEQ_LENGTH for test otherwise we will get error for transformer
+        test_dataset = YelpReviewDataset(
+            test_data, vocab, Config.TRAIN_SEQ_LENGTH)
+        test_loader = DataLoader(
+            test_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
+
     # define model
     if args.model_choice == 'lstm':
         model = MyLSTM(vocab_size=len(vocab), embedding_size=Config.LSTM_EMBEDDING_SIZE,
@@ -127,44 +200,9 @@ if __name__ == '__main__':
                                  betas=Config.BETAS, eps=Config.ADAM_EPSILON,
                                  weight_decay=Config.WEIGHT_DECAY)
 
-    # training loop
-    print("Training...")
-    for epoch in range(Config.NUM_EPOCHS):
-        total_loss = 0
-        for i, (data, labels) in enumerate(tqdm(train_loader)):
-            data = data.to(device)
-            labels = labels.unsqueeze(1)  # (batch_size, 1)
-            labels = labels.to(device)
-
-            # Apply label smoothing by changing labels from 0, 1 to 0.1, 0.9
-            if Config.LABEL_SMOOTHING:
-                labels = (1 - Config.LABEL_SMOOTHING_EPSILON) * labels + \
-                    Config.LABEL_SMOOTHING_EPSILON * (1 - labels)
-
-            # forward
-            outputs = model(data)
-            loss = criterion(outputs, labels)
-            total_loss += loss.item()
-            # backward
-            optimizer.zero_grad()
-            loss.backward()
-            if Config.GRADIENT_CLIP:
-                # clip gradient norm
-                nn.utils.clip_grad_norm_(model.parameters(),
-                                         max_norm=Config.GRADIENT_CLIP_VALUE)
-            optimizer.step()
-
-            # update tqdm with loss value every 20 batches
-            if (i+1) % 200 == 0:
-                tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
-                            Batch {i+1}/{len(train_loader)}, \
-                            Batch Loss: {loss.item():.4f}, \
-                            Average Loss: {total_loss / (i+1):.4f}")
-        print(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
-              Average Loss: {total_loss / len(train_loader):.4f}")
-        # save checkpoint
-        torch.save(model.state_dict(),
-                   f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
+    # train model
+    train(model, Config, criterion, optimizer, device, train_loader,
+          test_loader if args.test_in_training else None)
 
     # save model
     torch.save(model.state_dict(), f'models/{args.model_choice}_model.pt')
