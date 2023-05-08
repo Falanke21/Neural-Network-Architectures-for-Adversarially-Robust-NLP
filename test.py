@@ -64,7 +64,7 @@ if __name__ == "__main__":
         model = MyTransformer(vocab_size=len(vocab), d_model=Config.D_MODEL,
                               ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
                               drop_prob=Config.DROPOUT, max_len=Config.TEST_SEQ_LENGTH, 
-                              device=device)
+                              n_layers=Config.NUM_LAYERS, device=device)
     model.load_state_dict(torch.load(args.model))
     model.to(device)
     model.eval()

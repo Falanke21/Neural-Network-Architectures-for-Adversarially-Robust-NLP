@@ -41,6 +41,7 @@ class YelpReviewDataset(Dataset):
 
 def train(model, Config, criterion, optimizer, device, train_loader, test_loader=None):
     print("Training...")
+    train_losses, test_losses, test_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
         total_loss = 0
         model.train()
@@ -75,6 +76,8 @@ def train(model, Config, criterion, optimizer, device, train_loader, test_loader
                             Average Loss: {total_loss / (i+1):.4f}")
         print(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
               Average Loss: {total_loss / len(train_loader):.4f}")
+        # save loss for plot
+        train_losses.append(total_loss / len(train_loader))
         # save checkpoint
         torch.save(model.state_dict(),
                    f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
@@ -100,6 +103,20 @@ def train(model, Config, criterion, optimizer, device, train_loader, test_loader
                     TN += ((predicted == 0) & (labels == 0)).sum().item()
                 print(f"Test Accuracy: {(TP + TN) / total:.4f}")
                 print(f"Test Loss: {total_loss / len(test_loader):.4f}")
+                test_losses.append(total_loss / len(test_loader))
+                test_accuracy.append((TP + TN) / total)
+
+    if args.plot_loss:
+        plt.plot(train_losses, label='Training loss')
+        plt.plot(test_losses, label='Test loss')
+        plt.plot(test_accuracy, label='Test accuracy')
+        plt.xticks(np.arange(len(train_losses)), np.arange(1, len(train_losses)+1))
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss & Accuracy')
+        plt.title(f'{args.model_choice} Loss & Accuracy')
+        plt.legend(frameon=False)
+        plt.savefig(f'{args.model_choice}_loss.png')
+        print(f"Loss plot saved to {args.model_choice}_loss.png")
 
 
 if __name__ == '__main__':
@@ -111,8 +128,15 @@ if __name__ == '__main__':
     parser.add_argument('--load-trained', action='store_true', default=False)
     parser.add_argument('--test-in-training', action='store_true',
                         default=False, help='Do a test run after every epoch')
-
+    parser.add_argument('--plot-loss', action='store_true', default=False)
     args = parser.parse_args()
+
+    if args.plot_loss:
+        if not args.test_in_training:
+            raise ValueError("Cannot plot loss without testing in training. " 
+                             "Please set --test-in-training to True")
+        import matplotlib.pyplot as plt
+
     if args.model_choice == 'lstm':
         from config.lstm_config import LSTMConfig as Config
         from lstm.my_lstm import MyLSTM
@@ -184,7 +208,7 @@ if __name__ == '__main__':
         model = MyTransformer(vocab_size=len(vocab), d_model=Config.D_MODEL,
                               ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
                               drop_prob=Config.DROPOUT, max_len=Config.TRAIN_SEQ_LENGTH,
-                              device=device)
+                              n_layers=Config.NUM_LAYERS, device=device)
     if args.load_trained:
         model_path = 'models/' + args.model_choice + '_model.pt'
         model.load_state_dict(torch.load(model_path))
