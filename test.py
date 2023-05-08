@@ -47,7 +47,12 @@ if __name__ == "__main__":
     # convert label to int
     df['label'] = df['label'].astype(np.float64)
 
-    _, test_data = train_test_split(df, test_size=0.1, random_state=42)
+    # split data into train, val, test (80%, 10%, 10%)
+    train_data, test_data = train_test_split(
+        df, test_size=0.2, random_state=42)
+    test_data, val_data = train_test_split(
+        test_data, test_size=0.5, random_state=42)
+
     # Reset dataframe index so that we can use df.loc[idx, 'text']
     test_data = test_data.reset_index(drop=True)
     test_dataset = YelpReviewDataset(test_data, vocab, Config.TEST_SEQ_LENGTH)

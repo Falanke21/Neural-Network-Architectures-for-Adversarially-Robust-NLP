@@ -39,9 +39,9 @@ class YelpReviewDataset(Dataset):
         return indices, label
 
 
-def train(model, Config, criterion, optimizer, device, train_loader, test_loader=None):
+def train(model, Config, criterion, optimizer, device, train_loader, val_loader=None):
     print("Training...")
-    train_losses, test_losses, test_accuracy = [], [], []
+    train_losses, val_losses, val_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
         total_loss = 0
         model.train()
@@ -82,41 +82,53 @@ def train(model, Config, criterion, optimizer, device, train_loader, test_loader
         torch.save(model.state_dict(),
                    f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
 
-        # evaluate on test set if necessary
-        if args.test_in_training:
+        # evaluate on validation set if necessary
+        if args.val_in_training:
             model.eval()
             with torch.no_grad():
                 total_loss = total = TP = TN = 0
-                print(f"Testing at epoch {epoch + 1}...")
-                for data, labels in tqdm(test_loader):
+                print(f"Validation at epoch {epoch + 1}...")
+                for data, labels in tqdm(val_loader):
                     data = data.to(device)
                     labels = labels.unsqueeze(1).to(device)
                     outputs = model(data)
-
                     loss = criterion(outputs, labels)
                     total_loss += loss.item()
-
                     predicted = torch.round(torch.sigmoid(outputs))
                     total += labels.size(0)
 
                     TP += ((predicted == 1) & (labels == 1)).sum().item()
                     TN += ((predicted == 0) & (labels == 0)).sum().item()
-                print(f"Test Accuracy: {(TP + TN) / total:.4f}")
-                print(f"Test Loss: {total_loss / len(test_loader):.4f}")
-                test_losses.append(total_loss / len(test_loader))
-                test_accuracy.append((TP + TN) / total)
+                print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
+                print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
+                val_losses.append(total_loss / len(val_loader))
+                val_accuracy.append((TP + TN) / total)
 
     if args.plot_loss:
+        # plot loss
         plt.plot(train_losses, label='Training loss')
-        plt.plot(test_losses, label='Test loss')
-        plt.plot(test_accuracy, label='Test accuracy')
-        plt.xticks(np.arange(len(train_losses)), np.arange(1, len(train_losses)+1))
+        plt.plot(val_losses, label='Val loss')
+        plt.xticks(np.arange(len(train_losses)),
+                   np.arange(1, len(train_losses)+1))
         plt.xlabel('Epoch')
-        plt.ylabel('Loss & Accuracy')
-        plt.title(f'{args.model_choice} Loss & Accuracy')
+        plt.ylabel('Loss')
+        plt.title(f'{args.model_choice} Loss')
         plt.legend(frameon=False)
         plt.savefig(f'{args.model_choice}_loss.png')
+        # clear plot for next plot
+        plt.clf()
         print(f"Loss plot saved to {args.model_choice}_loss.png")
+
+        # plot accuracy
+        plt.plot(val_accuracy, label='Val accuracy')
+        plt.xticks(np.arange(len(train_losses)),
+                   np.arange(1, len(train_losses)+1))
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.title(f'{args.model_choice} Accuracy')
+        plt.legend(frameon=False)
+        plt.savefig(f'{args.model_choice}_accuracy.png')
+        print(f"Accuracy plot saved to {args.model_choice}_accuracy.png")
 
 
 if __name__ == '__main__':
@@ -126,15 +138,15 @@ if __name__ == '__main__':
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
     parser.add_argument('--load-trained', action='store_true', default=False)
-    parser.add_argument('--test-in-training', action='store_true',
-                        default=False, help='Do a test run after every epoch')
+    parser.add_argument('--val-in-training', action='store_true',
+                        default=False, help='Do a validation run after every epoch')
     parser.add_argument('--plot-loss', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.plot_loss:
-        if not args.test_in_training:
-            raise ValueError("Cannot plot loss without testing in training. " 
-                             "Please set --test-in-training to True")
+        if not args.val_in_training:
+            raise ValueError("Cannot plot loss without validation in training. "
+                             "Please set --val-in-training to True")
         import matplotlib.pyplot as plt
 
     if args.model_choice == 'lstm':
@@ -154,8 +166,11 @@ if __name__ == '__main__':
     # convert label to int
     df['label'] = df['label'].astype(np.float64)
 
+    # split data into train, val, test (80%, 10%, 10%)
     train_data, test_data = train_test_split(
-        df, test_size=0.1, random_state=42)
+        df, test_size=0.2, random_state=42)
+    test_data, val_data = train_test_split(
+        test_data, test_size=0.5, random_state=42)
 
     device = torch.device(
         'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')
@@ -191,13 +206,13 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         train_dataset, batch_size=Config.BATCH_SIZE, shuffle=True)
 
-    if args.test_in_training:
-        test_data = test_data.reset_index(drop=True)
-        # use TRAIN_SEQ_LENGTH for test otherwise we will get error for transformer
-        test_dataset = YelpReviewDataset(
-            test_data, vocab, Config.TRAIN_SEQ_LENGTH)
-        test_loader = DataLoader(
-            test_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
+    if args.val_in_training:
+        val_data = val_data.reset_index(drop=True)
+        # use TRAIN_SEQ_LENGTH for val otherwise we will get error for transformer
+        val_dataset = YelpReviewDataset(
+            val_data, vocab, Config.TRAIN_SEQ_LENGTH)
+        val_loader = DataLoader(
+            val_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
 
     # define model
     if args.model_choice == 'lstm':
@@ -226,7 +241,7 @@ if __name__ == '__main__':
 
     # train model
     train(model, Config, criterion, optimizer, device, train_loader,
-          test_loader if args.test_in_training else None)
+          val_loader if args.val_in_training else None)
 
     # save model
     torch.save(model.state_dict(), f'models/{args.model_choice}_model.pt')
