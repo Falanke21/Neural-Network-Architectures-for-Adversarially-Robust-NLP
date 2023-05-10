@@ -35,6 +35,12 @@ class MyTransformer(nn.Module):
         self.fc = nn.Linear(d_model, output_dim)
 
     def forward(self, x):
+        # For unbatched 1D input, we add a batch dimension of 1
+        if len(x.shape) == 1:
+            x = x.unsqueeze(0)
+        elif len(x.shape) > 2:
+            raise ValueError(
+                "Input must be a 1D or 2D tensor. Got tensor of shape: {}".format(x.shape))
         # x is a batched list of ids (batch_size, seq_len)
         x = self.embedding(x)  # (batch_size, seq_len, d_model)
         x = x + self.positional_encoding(x)
