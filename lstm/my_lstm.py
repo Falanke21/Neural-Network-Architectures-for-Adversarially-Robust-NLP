@@ -14,8 +14,16 @@ class MyLSTM(torch.nn.Module):
         self.device = device
 
     def forward(self, x):
-        batch_size = x.size(0)
-        # x shape (batch_size, seq_length, vocab_size)
+        # For unbatched 1D input, we add a batch dimension of 1
+        if len(x.shape) == 1:
+            x = x.unsqueeze(0)
+            batch_size = 1
+        elif len(x.shape) == 2:
+            batch_size = x.shape[0]
+        else:
+            raise ValueError(
+                "Input must be a 1D or 2D tensor. Got tensor of shape: {}".format(x.shape))
+        # x shape (batch_size, seq_length)
         x = x.long()
         x = self.embedding(x)  # (batch_size, seq_length, embedding_size)
 

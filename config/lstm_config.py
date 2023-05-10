@@ -2,7 +2,7 @@ class LSTMConfig:
     USE_GPU = True
     NUM_EPOCHS = 5
     TRAIN_SEQ_LENGTH = 150
-    TEST_SEQ_LENGTH = 450
+    TEST_SEQ_LENGTH = 150
     BATCH_SIZE = 200
     LEARNING_RATE = 0.001
 

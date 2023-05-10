@@ -35,7 +35,7 @@ class MyTransformer(nn.Module):
         self.fc = nn.Linear(d_model, output_dim)
 
     def forward(self, x):
-        # x is a batched one-hot vector (batch_size, seq_len, vocab_size)
+        # x is a batched list of ids (batch_size, seq_len)
         x = self.embedding(x)  # (batch_size, seq_len, d_model)
         x = x + self.positional_encoding(x)
         x = self.drop_out(x)
