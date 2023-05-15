@@ -1,6 +1,6 @@
 class TransformerConfig:
     USE_GPU = True
-    NUM_EPOCHS = 8
+    NUM_EPOCHS = 47
     TRAIN_SEQ_LENGTH = 150
     TEST_SEQ_LENGTH = 150
     BATCH_SIZE = 200
@@ -16,8 +16,8 @@ class TransformerConfig:
     LABEL_SMOOTHING = False  # label smoothing lead to worse results
     LABEL_SMOOTHING_EPSILON = 0.1  # 0 means no smoothing
 
-    NUM_LAYERS = 4
-    D_MODEL = 300
+    NUM_LAYERS = 1
+    D_MODEL = 340
     FFN_HIDDEN = 1024
     N_HEAD = 5
-    DROPOUT = 0
+    DROPOUT = 0.2
