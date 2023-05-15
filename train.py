@@ -8,7 +8,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 
-from utils.tokenizer import tokenize
+from utils.tokenizer import MyTokenizer
 
 
 class YelpReviewDataset(Dataset):
@@ -16,25 +16,16 @@ class YelpReviewDataset(Dataset):
         self.df = df
         self.vocab = vocab
         self.seq_length = max_seq_length
+        self.tokenizer = MyTokenizer(
+            vocab, max_seq_length, remove_stopwords=False)
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
         text = self.df.loc[idx, 'text']  # text is a string
-        token_list = tokenize(text)
-        indices = torch.zeros(
-            self.seq_length, dtype=torch.long)  # initialize as 0s
-        for i, token in enumerate(token_list):
-            if i >= self.seq_length:
-                # Reached the maximum sequence length
-                break
-            if token in self.vocab:
-                indices[i] = self.vocab[token]
-            else:
-                # Unknown token
-                indices[i] = self.vocab['<unk>']
-
+        # get indices of tokens from the text
+        indices = torch.tensor(self.tokenizer(text), dtype=torch.long)
         label = self.df.loc[idx, 'label']
         return indices, label
 
