@@ -4,7 +4,7 @@ import torch
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-nltk.download('punkt')
+# nltk.download('punkt')  # Uncomment this line if you haven't downloaded nltk punkt
 
 
 class MyTokenizer():

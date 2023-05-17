@@ -36,7 +36,7 @@ def main(num_records_per_iteration=10000):
         
         # process any remaining records
         if not df.empty:
-            df.to_csv(args.csv, mode='a', index=False, header=False)
+            df.to_csv(args.csv, mode='a', index=False, header=True)
 
 if __name__ == '__main__':
     main()
