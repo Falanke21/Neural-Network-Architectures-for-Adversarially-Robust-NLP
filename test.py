@@ -55,21 +55,19 @@ if __name__ == "__main__":
 
     # Reset dataframe index so that we can use df.loc[idx, 'text']
     test_data = test_data.reset_index(drop=True)
-    test_dataset = YelpReviewDataset(test_data, vocab, Config.TEST_SEQ_LENGTH)
+    test_dataset = YelpReviewDataset(test_data, vocab, Config.MAX_SEQ_LENGTH)
 
     # get dataloader from dataset
-    test_loader = DataLoader(test_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
+    test_loader = DataLoader(
+        test_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
 
     # load lstm model
     if args.model_choice == 'lstm':
-        model = MyLSTM(vocab_size=len(vocab), embedding_size=Config.LSTM_EMBEDDING_SIZE,
-                    hidden_size=Config.LSTM_HIDDEN_SIZE, num_layers=Config.LSTM_NUM_LAYERS,
-                    dropout=Config.LSTM_DROUPOUT, num_classes=1, device=device).to(device)
+        model = MyLSTM(Config=Config, vocab_size=len(
+            vocab), num_classes=1, device=device)
     elif args.model_choice == 'transformer':
-        model = MyTransformer(vocab_size=len(vocab), d_model=Config.D_MODEL,
-                              ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
-                              drop_prob=Config.DROPOUT, max_len=Config.TEST_SEQ_LENGTH, 
-                              n_layers=Config.NUM_LAYERS, device=device)
+        model = MyTransformer(Config=Config, vocab_size=len(
+            vocab), output_dim=1, device=device)
     model.load_state_dict(torch.load(args.model))
     model.to(device)
     model.eval()

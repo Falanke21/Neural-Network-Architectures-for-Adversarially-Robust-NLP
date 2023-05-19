@@ -191,7 +191,7 @@ if __name__ == '__main__':
         f"Num negative reviews in training set: {len(train_data[train_data['label'] == 0])}")
 
     train_dataset = YelpReviewDataset(
-        train_data, vocab, Config.TRAIN_SEQ_LENGTH)
+        train_data, vocab, Config.MAX_SEQ_LENGTH)
 
     # get dataloader from dataset
     train_loader = DataLoader(
@@ -199,22 +199,18 @@ if __name__ == '__main__':
 
     if args.val_in_training:
         val_data = val_data.reset_index(drop=True)
-        # use TRAIN_SEQ_LENGTH for val otherwise we will get error for transformer
         val_dataset = YelpReviewDataset(
-            val_data, vocab, Config.TRAIN_SEQ_LENGTH)
+            val_data, vocab, Config.MAX_SEQ_LENGTH)
         val_loader = DataLoader(
             val_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
 
     # define model
     if args.model_choice == 'lstm':
-        model = MyLSTM(vocab_size=len(vocab), embedding_size=Config.LSTM_EMBEDDING_SIZE,
-                       hidden_size=Config.LSTM_HIDDEN_SIZE, num_layers=Config.LSTM_NUM_LAYERS,
-                       dropout=Config.LSTM_DROUPOUT, num_classes=1, device=device)
+        model = MyLSTM(Config=Config, vocab_size=len(
+            vocab), num_classes=1, device=device)
     elif args.model_choice == 'transformer':
-        model = MyTransformer(vocab_size=len(vocab), d_model=Config.D_MODEL,
-                              ffn_hidden=Config.FFN_HIDDEN, output_dim=1, n_head=Config.N_HEAD,
-                              drop_prob=Config.DROPOUT, max_len=Config.TRAIN_SEQ_LENGTH,
-                              n_layers=Config.NUM_LAYERS, device=device)
+        model = MyTransformer(Config=Config, vocab_size=len(
+            vocab), output_dim=1, device=device)
     if args.load_trained:
         model_path = 'models/' + args.model_choice + '_model.pt'
         model.load_state_dict(torch.load(model_path))

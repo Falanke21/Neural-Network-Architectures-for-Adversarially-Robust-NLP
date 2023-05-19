@@ -2,15 +2,17 @@ import torch
 
 
 class MyLSTM(torch.nn.Module):
-    def __init__(self, vocab_size, embedding_size, hidden_size, num_layers, dropout, num_classes, device):
+    def __init__(self, Config, vocab_size, num_classes, device):
         super(MyLSTM, self).__init__()
-        self.num_layers = num_layers
-        self.hidden_size = hidden_size
+        self.num_layers = Config.LSTM_NUM_LAYERS
+        self.hidden_size = Config.LSTM_HIDDEN_SIZE
+        self.embedding_size = Config.LSTM_EMBEDDING_SIZE
         self.embedding = torch.nn.Embedding(
-            vocab_size, embedding_size, padding_idx=0)
+            vocab_size, self.embedding_size, padding_idx=0)
         self.lstm = torch.nn.LSTM(
-            embedding_size, hidden_size, num_layers, batch_first=True, bidirectional=True, dropout=dropout)
-        self.fc = torch.nn.Linear(hidden_size*2, num_classes)
+            self.embedding_size, self.hidden_size, self.num_layers, 
+            batch_first=True, bidirectional=True, dropout=Config.LSTM_DROUPOUT)
+        self.fc = torch.nn.Linear(self.hidden_size*2, num_classes)
         self.device = device
 
     def forward(self, x):

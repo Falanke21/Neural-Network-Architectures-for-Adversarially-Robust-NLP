@@ -1,8 +1,8 @@
 class LSTMConfig:
     USE_GPU = True
+    USE_GLOVE = False
     NUM_EPOCHS = 5
-    TRAIN_SEQ_LENGTH = 150
-    TEST_SEQ_LENGTH = 150
+    MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
     LEARNING_RATE = 0.001
 
