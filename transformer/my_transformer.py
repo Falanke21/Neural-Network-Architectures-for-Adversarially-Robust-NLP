@@ -28,13 +28,24 @@ class MyTransformer(nn.Module):
         self.ffn_hidden = Config.FFN_HIDDEN
         self.n_layers = Config.NUM_LAYERS
 
-        self.embedding = nn.Embedding(vocab_size, self.d_model, padding_idx=0)
+        if Config.USE_GLOVE:
+            # Use pretrained GloVe embeddings
+            import torchtext
+            glove = torchtext.vocab.GloVe(name='6B',
+                                          dim=Config.GLOVE_EMBEDDING_SIZE,
+                                          cache=Config.GLOVE_CACHE_DIR)
+            self.embedding = torch.nn.Embedding.from_pretrained(
+                glove.vectors, freeze=True)
+            print(f"Loaded GloVe embeddings of shape: {glove.vectors.shape}")
+        else:
+            self.embedding = nn.Embedding(
+                vocab_size, self.d_model, padding_idx=0)
         self.positional_encoding = PositionalEncoding(
             self.d_model, self.max_len, device)
         self.drop_out = nn.Dropout(p=self.drop_prob)
         # Support multiple layers
         self.layers = nn.ModuleList(
-            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head, self.drop_prob) 
+            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head, self.drop_prob)
              for _ in range(self.n_layers)])
         self.fc = nn.Linear(self.d_model, output_dim)
 

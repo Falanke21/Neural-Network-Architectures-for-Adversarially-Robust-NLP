@@ -1,6 +1,8 @@
 class TransformerConfig:
     USE_GPU = True
-    USE_GLOVE = False
+    USE_GLOVE = True
+    GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
+    GLOVE_EMBEDDING_SIZE = 300
     NUM_EPOCHS = 47
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
@@ -17,7 +19,7 @@ class TransformerConfig:
     LABEL_SMOOTHING_EPSILON = 0.1  # 0 means no smoothing
 
     NUM_LAYERS = 1
-    D_MODEL = 340
+    D_MODEL = 300
     FFN_HIDDEN = 1024
     N_HEAD = 5
     DROPOUT = 0.2

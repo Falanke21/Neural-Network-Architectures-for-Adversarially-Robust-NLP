@@ -70,8 +70,11 @@ def train(model, Config, criterion, optimizer, device, train_loader, val_loader=
         # save loss for plot
         train_losses.append(total_loss / len(train_loader))
         # save checkpoint
-        torch.save(model.state_dict(),
-                   f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
+        try:
+            torch.save(model.state_dict(),
+                       f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
+        except OSError as e:
+            print(f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
 
         # evaluate on validation set if necessary
         if args.val_in_training:
@@ -125,7 +128,7 @@ def train(model, Config, criterion, optimizer, device, train_loader, val_loader=
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=str, required=True)
-    parser.add_argument('--vocab', type=str, required=True)
+    parser.add_argument('--vocab', type=str)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
     parser.add_argument('--load-trained', action='store_true', default=False)
@@ -147,9 +150,16 @@ if __name__ == '__main__':
         from config.transformer_config import TransformerConfig as Config
         from transformer.my_transformer import MyTransformer
 
-    # load vocab
-    with open(args.vocab, 'rb') as f:
-        vocab = pickle.load(f)
+    # load custom vocab or GloVe
+    if Config.USE_GLOVE:
+        import torchtext
+        glove = torchtext.vocab.GloVe(
+            name='6B', dim=Config.GLOVE_EMBEDDING_SIZE,
+            cache=Config.GLOVE_CACHE_DIR)
+        vocab = glove.stoi
+    else:
+        with open(args.vocab, 'rb') as f:
+            vocab = pickle.load(f)
     # load data
     df = pd.read_csv(args.csv)
     # there are some rows with label = 'label', we need to remove them
@@ -217,7 +227,8 @@ if __name__ == '__main__':
         print(f"Loaded trained model from {model_path}!")
     # print num of parameters
     print(
-        f'Number of parameters: {sum(p.numel() for p in model.parameters())}')
+        f'Number of trainable parameters: \
+        {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
     model.train()
     model.to(device)
     # define binary cross entropy loss function and optimizer

@@ -14,7 +14,8 @@ class MyTokenizer():
 
     def __init__(self, vocab, seq_length, remove_stopwords: bool = False):
         """
-        :param vocab: torchtext.vocab.Vocab object, a mapping from tokens to indices
+        :param vocab: torchtext.vocab.Vocab object, a mapping from tokens to indices,
+        or GloVe.stoi from torchtext, a dictionary mapping tokens to indices
         :param remove_stopwords: whether to remove stopwords using nltk
         """
         self.vocab = vocab
@@ -54,7 +55,7 @@ class MyTokenizer():
                 indices[i] = self.vocab[token]
             else:
                 # Unknown token
-                indices[i] = self.vocab['<unk>']
+                indices[i] = self.vocab['<unk>'] if '<unk>' in self.vocab else 0
         return indices
 
     def __call__(self, text) -> list:

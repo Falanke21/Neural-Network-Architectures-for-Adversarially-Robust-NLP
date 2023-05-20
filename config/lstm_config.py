@@ -1,6 +1,8 @@
 class LSTMConfig:
     USE_GPU = True
-    USE_GLOVE = False
+    USE_GLOVE = True
+    GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
+    GLOVE_EMBEDDING_SIZE = 300
     NUM_EPOCHS = 5
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200

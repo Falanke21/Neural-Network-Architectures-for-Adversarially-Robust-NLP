@@ -6,9 +6,18 @@ class MyLSTM(torch.nn.Module):
         super(MyLSTM, self).__init__()
         self.num_layers = Config.LSTM_NUM_LAYERS
         self.hidden_size = Config.LSTM_HIDDEN_SIZE
-        self.embedding_size = Config.LSTM_EMBEDDING_SIZE
-        self.embedding = torch.nn.Embedding(
-            vocab_size, self.embedding_size, padding_idx=0)
+        if Config.USE_GLOVE:
+            # Use pretrained GloVe embeddings
+            import torchtext
+            self.embedding_size = Config.GLOVE_EMBEDDING_SIZE
+            glove = torchtext.vocab.GloVe(name='6B', dim=self.embedding_size, cache=Config.GLOVE_CACHE_DIR)
+            self.embedding = torch.nn.Embedding.from_pretrained(glove.vectors, freeze=True)
+            print(f"Loaded GloVe embeddings of shape: {glove.vectors.shape}")
+        else:
+            # Train embeddings from scratch
+            self.embedding_size = Config.LSTM_EMBEDDING_SIZE
+            self.embedding = torch.nn.Embedding(
+                vocab_size, self.embedding_size, padding_idx=0)
         self.lstm = torch.nn.LSTM(
             self.embedding_size, self.hidden_size, self.num_layers, 
             batch_first=True, bidirectional=True, dropout=Config.LSTM_DROUPOUT)
