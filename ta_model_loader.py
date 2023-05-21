@@ -1,4 +1,5 @@
 # Custom model loader for textattack
+import importlib
 import pickle
 import torch
 from textattack.models.wrappers import PyTorchModelWrapper
@@ -7,18 +8,20 @@ from textattack.models.wrappers import PyTorchModelWrapper
 from project.utils import tokenizer
 
 # Choose the model type
-# MODEL_TYPE = "lstm"
 MODEL_TYPE = "transformer"
+# MODEL_TYPE = "transformer"
+model_path = f"models/{MODEL_TYPE}_custom_embedding.pt"
+config_name = f"{MODEL_TYPE}_default"
 
 # Load the model
 if MODEL_TYPE == "lstm":
     from project.lstm.my_lstm import MyLSTM
-    from project.config.lstm_config import LSTMConfig as Config
-    model_path = "models/lstm_model.pt"
+    Config = importlib.import_module('project.config.' + config_name).LSTMConfig
 elif MODEL_TYPE == "transformer":
     from project.transformer.my_transformer import MyTransformer
-    from project.config.transformer_config import TransformerConfig as Config
-    model_path = "models/transformer_model.pt"
+    Config = importlib.import_module('project.config.' + config_name).TransformerConfig
+print(f"Using config: {config_name}")
+
 
 vocab_path = "data/vocab200k.pkl"
 with open(vocab_path, 'rb') as f:

@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import numpy as np
 import pickle
 import pandas as pd
@@ -135,6 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--val-in-training', action='store_true',
                         default=False, help='Do a validation run after every epoch')
     parser.add_argument('--plot-loss', action='store_true', default=False)
+    parser.add_argument('--config', type=str, required=True)
     args = parser.parse_args()
 
     if args.plot_loss:
@@ -144,11 +146,12 @@ if __name__ == '__main__':
         import matplotlib.pyplot as plt
 
     if args.model_choice == 'lstm':
-        from config.lstm_config import LSTMConfig as Config
+        Config = importlib.import_module('config.' + args.config).LSTMConfig
         from lstm.my_lstm import MyLSTM
     elif args.model_choice == 'transformer':
-        from config.transformer_config import TransformerConfig as Config
+        Config = importlib.import_module('config.' + args.config).TransformerConfig
         from transformer.my_transformer import MyTransformer
+    print(f"Using config: {args.config}")
 
     # load custom vocab or GloVe
     if Config.USE_GLOVE:

@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import numpy as np
 import pickle
 import pandas as pd
@@ -17,14 +18,16 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
+    parser.add_argument('--config', type=str, required=True)
     args = parser.parse_args()
 
     if args.model_choice == 'lstm':
-        from config.lstm_config import LSTMConfig as Config
+        Config = importlib.import_module('config.' + args.config).LSTMConfig
         from lstm.my_lstm import MyLSTM
     elif args.model_choice == 'transformer':
-        from config.transformer_config import TransformerConfig as Config
+        Config = importlib.import_module('config.' + args.config).TransformerConfig
         from transformer.my_transformer import MyTransformer
+    print(f"Using config: {args.config}")
 
     device = torch.device(
         'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')
