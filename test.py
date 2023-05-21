@@ -13,7 +13,7 @@ from train import YelpReviewDataset
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=str, required=True)
-    parser.add_argument('--vocab', type=str, required=True)
+    parser.add_argument('--vocab', type=str)
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
@@ -36,9 +36,16 @@ if __name__ == "__main__":
         print(
             f'GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3} GB')
 
-    # load vocab
-    with open(args.vocab, 'rb') as f:
-        vocab = pickle.load(f)
+    # load custom vocab or GloVe
+    if Config.USE_GLOVE:
+        import torchtext
+        glove = torchtext.vocab.GloVe(
+            name='6B', dim=Config.GLOVE_EMBEDDING_SIZE,
+            cache=Config.GLOVE_CACHE_DIR)
+        vocab = glove.stoi
+    else:
+        with open(args.vocab, 'rb') as f:
+            vocab = pickle.load(f)
 
     # load data
     df = pd.read_csv(args.csv)
