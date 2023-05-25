@@ -45,7 +45,7 @@ if __name__ == "__main__":
         glove = torchtext.vocab.GloVe(
             name='6B', dim=Config.GLOVE_EMBEDDING_SIZE,
             cache=Config.GLOVE_CACHE_DIR)
-        vocab = glove.stoi
+        vocab = glove
     else:
         with open(args.vocab, 'rb') as f:
             vocab = pickle.load(f)

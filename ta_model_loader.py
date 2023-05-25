@@ -8,10 +8,13 @@ from textattack.models.wrappers import PyTorchModelWrapper
 from project.utils import tokenizer
 
 # Choose the model type
-MODEL_TYPE = "transformer"
+MODEL_TYPE = "lstm"
 # MODEL_TYPE = "transformer"
-model_path = f"models/{MODEL_TYPE}_custom_embedding.pt"
-config_name = f"{MODEL_TYPE}_default"
+# EMBEDDING = "custom"
+EMBEDDING = "glove"
+model_path = f"models/{MODEL_TYPE}_{EMBEDDING}_embedding.pt"
+config_name = f"{MODEL_TYPE}_default" if EMBEDDING == "custom" else f"{MODEL_TYPE}_glove"
+print(f"Loading model from {model_path}")
 
 # Load the model
 if MODEL_TYPE == "lstm":
@@ -22,10 +25,16 @@ elif MODEL_TYPE == "transformer":
     Config = importlib.import_module('project.config.' + config_name).TransformerConfig
 print(f"Using config: {config_name}")
 
-
-vocab_path = "data/vocab200k.pkl"
-with open(vocab_path, 'rb') as f:
-    vocab = pickle.load(f)
+if EMBEDDING == "custom":
+    vocab_path = "data/vocab200k.pkl"
+    with open(vocab_path, 'rb') as f:
+        vocab = pickle.load(f)
+elif EMBEDDING == "glove":
+    import torchtext
+    glove = torchtext.vocab.GloVe(
+        name='6B', dim=Config.GLOVE_EMBEDDING_SIZE,
+        cache=Config.GLOVE_CACHE_DIR)
+    vocab = glove
 
 device = torch.device(
     'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')
@@ -62,6 +71,12 @@ class ModelWithSigmoid(torch.nn.Module):
         logits = self.model(x)
         output = torch.sigmoid(logits)
         return torch.cat((1 - output, output), dim=1)
+    
+    def get_input_embeddings(self):
+        """
+        Return the input embedding layer
+        """
+        return self.model.embedding
 
 
 my_model = ModelWithSigmoid(my_model)

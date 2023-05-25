@@ -1,6 +1,6 @@
 import nltk
 import string
-import torch
+import torchtext
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
@@ -15,12 +15,17 @@ class MyTokenizer():
     def __init__(self, vocab, seq_length, remove_stopwords: bool = False):
         """
         :param vocab: torchtext.vocab.Vocab object, a mapping from tokens to indices,
-        or GloVe.stoi from torchtext, a dictionary mapping tokens to indices
+        or GloVe object from torchtext
         :param remove_stopwords: whether to remove stopwords using nltk
         """
         self.vocab = vocab
+        if not isinstance(self.vocab, torchtext.vocab.Vocab) and not isinstance(
+                self.vocab, torchtext.vocab.GloVe):
+            raise ValueError(
+                "Vocab must be either torchtext.vocab.Vocab or torchtext.vocab.GloVe")
         self.seq_length = seq_length
         self.remove_stopwords = remove_stopwords
+        self.pad_token_id = 0  # default pad token id (Textattack usage only)
 
     def tokenize(self, text: str) -> list:
         '''
@@ -46,16 +51,21 @@ class MyTokenizer():
         """
         Return a list of ids for each token in the list of string tokens.
         """
+        # Different vocab object has different ways to get the stoi mapping
+        if isinstance(self.vocab, torchtext.vocab.Vocab):
+            stoi = self.vocab.get_stoi()
+        elif isinstance(self.vocab, torchtext.vocab.GloVe):
+            stoi = self.vocab.stoi
         indices = self.seq_length * [0]  # initialize as 0s
         for i, token in enumerate(token_list):
             if i >= self.seq_length:
                 # Reached the maximum sequence length
                 break
-            if token in self.vocab:
-                indices[i] = self.vocab[token]
+            if token in stoi:
+                indices[i] = stoi[token]
             else:
                 # Unknown token
-                indices[i] = self.vocab['<unk>'] if '<unk>' in self.vocab else 0
+                indices[i] = stoi['<unk>'] if '<unk>' in stoi else 0
         return indices
 
     def __call__(self, text) -> list:
@@ -77,3 +87,22 @@ class MyTokenizer():
         else:
             raise ValueError(
                 f"Input text must be either a string or a list of strings, but got {type(text)} instead.")
+
+    def convert_id_to_word(self, id: int) -> str:
+        """
+        Convert an id to a word. (Textattack usage only)
+        """
+        if isinstance(self.vocab, torchtext.vocab.GloVe):
+            return self.vocab.itos[id]
+        elif isinstance(self.vocab, torchtext.vocab.Vocab):
+            return self.vocab.get_itos()[id]
+        else:
+            raise ValueError(
+                f"vocab must have either itos or get_itos() method, \
+                    but got {type(self.vocab)} instead.")
+
+    def convert_ids_to_tokens(self, ids: list) -> list:
+        """
+        Convert a list of ids to a list of words. (Textattack usage only)
+        """
+        return [self.convert_id_to_word(id) for id in ids]

@@ -3,7 +3,7 @@ class TransformerConfig:
     USE_GLOVE = True
     GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
     GLOVE_EMBEDDING_SIZE = 300
-    NUM_EPOCHS = 47
+    NUM_EPOCHS = 50
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
     LEARNING_RATE = 1e-4

@@ -31,7 +31,7 @@ class YelpReviewDataset(Dataset):
         return indices, label
 
 
-def train(model, Config, criterion, optimizer, device, train_loader, val_loader=None):
+def train(model, Config, criterion, optimizer, device, checkpoints, train_loader, val_loader=None):
     print("Training...")
     train_losses, val_losses, val_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
@@ -71,11 +71,12 @@ def train(model, Config, criterion, optimizer, device, train_loader, val_loader=
         # save loss for plot
         train_losses.append(total_loss / len(train_loader))
         # save checkpoint
-        try:
-            torch.save(model.state_dict(),
-                       f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt')
-        except OSError as e:
-            print(f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
+        if checkpoints:
+            try:
+                checkpoint_path = f'models/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt'
+                torch.save(model.state_dict(), checkpoint_path)
+            except OSError as e:
+                print(f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
 
         # evaluate on validation set if necessary
         if args.val_in_training:
@@ -137,6 +138,7 @@ if __name__ == '__main__':
                         default=False, help='Do a validation run after every epoch')
     parser.add_argument('--plot-loss', action='store_true', default=False)
     parser.add_argument('--config', type=str, required=True)
+    parser.add_argument('--checkpoints', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.plot_loss:
@@ -159,7 +161,7 @@ if __name__ == '__main__':
         glove = torchtext.vocab.GloVe(
             name='6B', dim=Config.GLOVE_EMBEDDING_SIZE,
             cache=Config.GLOVE_CACHE_DIR)
-        vocab = glove.stoi
+        vocab = glove
     else:
         with open(args.vocab, 'rb') as f:
             vocab = pickle.load(f)
@@ -241,7 +243,7 @@ if __name__ == '__main__':
                                  weight_decay=Config.WEIGHT_DECAY)
 
     # train model
-    train(model, Config, criterion, optimizer, device, train_loader,
+    train(model, Config, criterion, optimizer, device, args.checkpoints, train_loader,
           val_loader if args.val_in_training else None)
 
     # save model
