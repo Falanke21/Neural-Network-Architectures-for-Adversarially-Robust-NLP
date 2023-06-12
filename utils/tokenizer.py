@@ -19,7 +19,7 @@ class MyTokenizer():
         :param remove_stopwords: whether to remove stopwords using nltk
         """
         self.vocab = vocab
-        if not isinstance(self.vocab, torchtext.vocab.Vocab) and not isinstance(
+        if vocab and not isinstance(self.vocab, torchtext.vocab.Vocab) and not isinstance(
                 self.vocab, torchtext.vocab.GloVe):
             raise ValueError(
                 "Vocab must be either torchtext.vocab.Vocab or torchtext.vocab.GloVe")
