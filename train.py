@@ -1,12 +1,10 @@
 import argparse
 import importlib
-import numpy as np
 import pickle
 import pandas as pd
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 
 from utils.tokenizer import MyTokenizer
@@ -31,7 +29,7 @@ class YelpReviewDataset(Dataset):
         return indices, label
 
 
-def train(model, Config, criterion, optimizer, device, checkpoints, train_loader, val_loader=None):
+def train(model, Config, criterion, optimizer, device, checkpoints, train_loader, val_loader):
     print("Training...")
     train_losses, val_losses, val_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
@@ -39,7 +37,7 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
         model.train()
         for i, (data, labels) in enumerate(tqdm(train_loader)):
             data = data.to(device)
-            labels = labels.unsqueeze(1)  # (batch_size, 1)
+            labels = labels.unsqueeze(1).float()  # (batch_size, 1)
             labels = labels.to(device)
 
             # Apply label smoothing by changing labels from 0, 1 to 0.1, 0.9
@@ -79,73 +77,45 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
                 print(f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
 
         # evaluate on validation set if necessary
-        if args.val_in_training:
-            model.eval()
-            with torch.no_grad():
-                total_loss = total = TP = TN = 0
-                print(f"Validation at epoch {epoch + 1}...")
-                for data, labels in tqdm(val_loader):
-                    data = data.to(device)
-                    labels = labels.unsqueeze(1).to(device)
-                    outputs = model(data)
-                    loss = criterion(outputs, labels)
-                    total_loss += loss.item()
-                    predicted = torch.round(torch.sigmoid(outputs))
-                    total += labels.size(0)
+        model.eval()
+        with torch.no_grad():
+            total_loss = total = TP = TN = 0
+            print(f"Validation at epoch {epoch + 1}...")
+            for data, labels in tqdm(val_loader):
+                data = data.to(device)
+                labels = labels.unsqueeze(1).float().to(device)
+                outputs = model(data)
+                loss = criterion(outputs, labels)
+                total_loss += loss.item()
+                predicted = torch.round(torch.sigmoid(outputs))
+                total += labels.size(0)
 
-                    TP += ((predicted == 1) & (labels == 1)).sum().item()
-                    TN += ((predicted == 0) & (labels == 0)).sum().item()
-                print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
-                print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
-                val_losses.append(total_loss / len(val_loader))
-                val_accuracy.append((TP + TN) / total)
+                TP += ((predicted == 1) & (labels == 1)).sum().item()
+                TN += ((predicted == 0) & (labels == 0)).sum().item()
+            print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
+            print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
+            val_losses.append(total_loss / len(val_loader))
+            val_accuracy.append((TP + TN) / total)
 
-    if args.plot_loss:
-        # plot loss
-        plt.plot(train_losses, label='Training loss')
-        plt.plot(val_losses, label='Val loss')
-        plt.xticks(np.arange(len(train_losses)),
-                   np.arange(1, len(train_losses)+1))
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.title(f'{args.model_choice} Loss')
-        plt.legend(frameon=False)
-        plt.savefig(f'{args.model_choice}_loss.png')
-        # clear plot for next plot
-        plt.clf()
-        print(f"Loss plot saved to {args.model_choice}_loss.png")
-
-        # plot accuracy
-        plt.plot(val_accuracy, label='Val accuracy')
-        plt.xticks(np.arange(len(train_losses)),
-                   np.arange(1, len(train_losses)+1))
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.title(f'{args.model_choice} Accuracy')
-        plt.legend(frameon=False)
-        plt.savefig(f'{args.model_choice}_accuracy.png')
-        print(f"Accuracy plot saved to {args.model_choice}_accuracy.png")
+        # plot loss and accuracy values to file
+        with open(f'{args.model_choice}_train_losses.txt', 'a') as f:
+            f.write(f'{train_losses[-1]}\n')
+        with open(f'{args.model_choice}_val_losses.txt', 'a') as f:
+            f.write(f'{val_losses[-1]}\n')
+        with open(f'{args.model_choice}_val_accuracy.txt', 'a') as f:
+            f.write(f'{val_accuracy[-1]}\n')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--csv', type=str, required=True)
+    parser.add_argument('--csv-folder', type=str, required=True)
     parser.add_argument('--vocab', type=str)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
     parser.add_argument('--load-trained', action='store_true', default=False)
-    parser.add_argument('--val-in-training', action='store_true',
-                        default=False, help='Do a validation run after every epoch')
-    parser.add_argument('--plot-loss', action='store_true', default=False)
     parser.add_argument('--config', type=str, required=True)
     parser.add_argument('--checkpoints', action='store_true', default=False)
     args = parser.parse_args()
-
-    if args.plot_loss:
-        if not args.val_in_training:
-            raise ValueError("Cannot plot loss without validation in training. "
-                             "Please set --val-in-training to True")
-        import matplotlib.pyplot as plt
 
     if args.model_choice == 'lstm':
         Config = importlib.import_module('config.' + args.config).LSTMConfig
@@ -166,17 +136,8 @@ if __name__ == '__main__':
         with open(args.vocab, 'rb') as f:
             vocab = pickle.load(f)
     # load data
-    df = pd.read_csv(args.csv)
-    # there are some rows with label = 'label', we need to remove them
-    df = df[df['label'] != 'label']
-    # convert label to int
-    df['label'] = df['label'].astype(np.float64)
-
-    # split data into train, val, test (80%, 10%, 10%)
-    train_data, test_data = train_test_split(
-        df, test_size=0.2, random_state=42)
-    test_data, val_data = train_test_split(
-        test_data, test_size=0.5, random_state=42)
+    train_data = pd.read_csv(f'{args.csv_folder}/train.csv')
+    val_data = pd.read_csv(f'{args.csv_folder}/val.csv')
 
     device = torch.device(
         'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')
@@ -212,12 +173,11 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         train_dataset, batch_size=Config.BATCH_SIZE, shuffle=True)
 
-    if args.val_in_training:
-        val_data = val_data.reset_index(drop=True)
-        val_dataset = YelpReviewDataset(
-            val_data, vocab, Config.MAX_SEQ_LENGTH)
-        val_loader = DataLoader(
-            val_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
+    val_data = val_data.reset_index(drop=True)
+    val_dataset = YelpReviewDataset(
+        val_data, vocab, Config.MAX_SEQ_LENGTH)
+    val_loader = DataLoader(
+        val_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
 
     # define model
     if args.model_choice == 'lstm':
@@ -244,7 +204,7 @@ if __name__ == '__main__':
 
     # train model
     train(model, Config, criterion, optimizer, device, args.checkpoints, train_loader,
-          val_loader if args.val_in_training else None)
+          val_loader)
 
     # save model
     torch.save(model.state_dict(), f'models/{args.model_choice}_model.pt')

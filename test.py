@@ -13,7 +13,7 @@ from train import YelpReviewDataset
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--csv', type=str, required=True)
+    parser.add_argument('--csv-folder', type=str, required=True)
     parser.add_argument('--vocab', type=str)
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--model-choice', type=str,
@@ -50,18 +50,7 @@ if __name__ == "__main__":
         with open(args.vocab, 'rb') as f:
             vocab = pickle.load(f)
 
-    # load data
-    df = pd.read_csv(args.csv)
-    # there are some rows with label = 'label', we need to remove them
-    df = df[df['label'] != 'label']
-    # convert label to int
-    df['label'] = df['label'].astype(np.float64)
-
-    # split data into train, val, test (80%, 10%, 10%)
-    train_data, test_data = train_test_split(
-        df, test_size=0.2, random_state=42)
-    test_data, val_data = train_test_split(
-        test_data, test_size=0.5, random_state=42)
+    test_data = pd.read_csv(f'{args.csv_folder}/test.csv')
 
     # Reset dataframe index so that we can use df.loc[idx, 'text']
     test_data = test_data.reset_index(drop=True)
@@ -92,7 +81,7 @@ if __name__ == "__main__":
         print("Testing...")
         for data, labels in tqdm(test_loader):
             data = data.to(device)
-            labels = labels.unsqueeze(1).to(device)
+            labels = labels.unsqueeze(1).float().to(device)
             outputs = model(data)
 
             loss = criterion(outputs, labels)
