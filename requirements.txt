@@ -1,0 +1,10 @@
+matplotlib==3.7.1
+nltk==3.8.1
+numpy==1.24.3
+pandas==2.0.1
+scikit-learn==1.2.2
+tensorflow==2.9.1
+textattack==0.3.8
+torch==2.0.0
+torchtext==0.15.1
+tqdm==4.65.0
