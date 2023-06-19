@@ -54,7 +54,7 @@ class MyTokenizer():
         3. Lemmatize each word
         4. Return the cleaned text as a list of strings
         '''
-        tokenize(text, self.remove_stopwords)
+        return tokenize(text, self.remove_stopwords)
 
     def tokens_to_ids(self, token_list: list) -> list:
         """
