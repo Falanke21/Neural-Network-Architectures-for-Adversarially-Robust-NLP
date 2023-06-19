@@ -59,7 +59,7 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
             optimizer.step()
 
             # update tqdm with loss value every 20 batches
-            if (i+1) % 200 == 0:
+            if (i+1) % Config.BATCH_SIZE == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
                             Batch {i+1}/{len(train_loader)}, \
                             Batch Loss: {loss.item():.4f}, \
@@ -98,12 +98,13 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
             val_accuracy.append((TP + TN) / total)
 
         # plot loss and accuracy values to file
-        with open(f'{args.model_choice}_train_losses.txt', 'a') as f:
-            f.write(f'{train_losses[-1]}\n')
-        with open(f'{args.model_choice}_val_losses.txt', 'a') as f:
-            f.write(f'{val_losses[-1]}\n')
-        with open(f'{args.model_choice}_val_accuracy.txt', 'a') as f:
-            f.write(f'{val_accuracy[-1]}\n')
+        if args.loss_values:
+            with open(f'{args.model_choice}_train_losses.txt', 'a') as f:
+                f.write(f'{train_losses[-1]}\n')
+            with open(f'{args.model_choice}_val_losses.txt', 'a') as f:
+                f.write(f'{val_losses[-1]}\n')
+            with open(f'{args.model_choice}_val_accuracy.txt', 'a') as f:
+                f.write(f'{val_accuracy[-1]}\n')
 
 
 if __name__ == '__main__':
@@ -115,6 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--load-trained', action='store_true', default=False)
     parser.add_argument('--config', type=str, required=True)
     parser.add_argument('--checkpoints', action='store_true', default=False)
+    parser.add_argument('--loss-values', action='store_true', default=False, help='Output txt files of loss values')
     args = parser.parse_args()
 
     if args.model_choice == 'lstm':
