@@ -13,13 +13,20 @@ def json_to_csv(num_records_per_iteration=10000):
 
             # only keep the stars field and the text field in the data dict, drop the rest
             data = {k: data[k] for k in ['stars', 'text']}
-            # change the star field to be 0 or 1, where [4-5] is 1, and [1-2] is 0, and [3] is ignored
-            if data['stars'] >= 4:
-                data['stars'] = 1
-            elif data['stars'] <= 2:
-                data['stars'] = 0
+            if args.include_three_stars:
+                # change the star field to be 0 or 1, where [4-5] is 1, and [1-3] is 0
+                if data['stars'] >= 4:
+                    data['stars'] = 1
+                else:
+                    data['stars'] = 0
             else:
-                continue
+                # change the star field to be 0 or 1, where [4-5] is 1, and [1-2] is 0, and [3] is ignored
+                if data['stars'] >= 4:
+                    data['stars'] = 1
+                elif data['stars'] <= 2:
+                    data['stars'] = 0
+                else:
+                    continue
             # change the name of the stars field to label
             data['label'] = data.pop('stars')
 
@@ -40,9 +47,9 @@ def json_to_csv(num_records_per_iteration=10000):
         #     df.to_csv(args.csv, mode='a', index=False, header=True)
 
 
-def train_val_test_split():
-    print(f"Splitting {args.csv} into train, val, test")
-    df = pd.read_csv(args.csv)
+def train_val_test_split(csv_file_name):
+    print(f"Splitting {csv_file_name} into train, val, test")
+    df = pd.read_csv(csv_file_name)
     # there are some rows with label = 'label', we need to remove them
     df = df[df['label'] != 'label']
     # convert label to int
@@ -55,9 +62,9 @@ def train_val_test_split():
         test_data, test_size=0.5, random_state=42)
 
     # save the data to files
-    train_data.to_csv(f'{args.csv}_train.csv', index=False, header=True)
-    val_data.to_csv(f'{args.csv}_val.csv', index=False, header=True)
-    test_data.to_csv(f'{args.csv}_test.csv', index=False, header=True)
+    train_data.to_csv(f'{csv_file_name}_train.csv', index=False, header=True)
+    val_data.to_csv(f'{csv_file_name}_val.csv', index=False, header=True)
+    test_data.to_csv(f'{csv_file_name}_test.csv', index=False, header=True)
 
 
 if __name__ == '__main__':
@@ -65,7 +72,9 @@ if __name__ == '__main__':
     parser.add_argument('--json', type=str, required=True)
     parser.add_argument('--csv', type=str, required=True)
     parser.add_argument('--total-records', type=int, default=200000)
+    parser.add_argument('--include-three-stars', action='store_true', default=False, 
+                        help='include 3-star reviews as negative samples')
     args = parser.parse_args()
 
     json_to_csv()
-    train_val_test_split()
+    train_val_test_split(args.csv)
