@@ -36,9 +36,10 @@ if args.epoch_end < len(train_losses):
 plt.plot(train_losses, label='Training loss')
 plt.plot(val_losses, label='Val loss')
 plt.xticks(np.arange(len(train_losses)),
-           np.arange(1, len(train_losses)+1))
+           np.arange(1, len(train_losses)+1))  # epoch numbers start at 1
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
+plt.locator_params(axis='x', nbins=20)  # avoid overlapping x-axis labels
 plt.title(f'{TITLE_FORMAT} Loss')
 plt.legend(frameon=False)
 plt.savefig(f'{args.model_choice}_loss.png')
@@ -49,9 +50,10 @@ print(f"Loss plot saved to {args.model_choice}_loss.png")
 # plot accuracy
 plt.plot(val_accuracy, label='Val accuracy')
 plt.xticks(np.arange(len(train_losses)),
-           np.arange(1, len(train_losses)+1))
+           np.arange(1, len(train_losses)+1))  # epoch numbers start at 1
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
+plt.locator_params(axis='x', nbins=20)  # avoid overlapping x-axis labels
 plt.title(f'{TITLE_FORMAT} Accuracy')
 plt.legend(frameon=False)
 plt.savefig(f'{args.model_choice}_accuracy.png')
