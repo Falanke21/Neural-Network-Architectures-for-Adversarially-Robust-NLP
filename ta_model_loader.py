@@ -8,13 +8,14 @@ from textattack.models.wrappers import PyTorchModelWrapper
 from project.utils import tokenizer
 
 # Choose the model type
-MODEL_TYPE = "lstm"
-# MODEL_TYPE = "transformer"
-# EMBEDDING = "custom"
-EMBEDDING = "glove"
-model_path = f"models/{MODEL_TYPE}_{EMBEDDING}_embedding.pt"
+# MODEL_TYPE = "lstm"
+MODEL_TYPE = "transformer"
+EMBEDDING = "custom"
+# EMBEDDING = "glove"
+model_path = f"vol_folder/model_zoo/data300k/transformer_custom_no_weight_decay/transformer_model.pt"
 config_name = f"{MODEL_TYPE}_default" if EMBEDDING == "custom" else f"{MODEL_TYPE}_glove"
 print(f"Loading model from {model_path}")
+print(f"Using config: {config_name}")
 
 # Load the model
 if MODEL_TYPE == "lstm":
@@ -23,10 +24,9 @@ if MODEL_TYPE == "lstm":
 elif MODEL_TYPE == "transformer":
     from project.transformer.my_transformer import MyTransformer
     Config = importlib.import_module('project.config.' + config_name).TransformerConfig
-print(f"Using config: {config_name}")
 
 if EMBEDDING == "custom":
-    vocab_path = "data/vocab200k.pkl"
+    vocab_path = "data/vocab300k.pkl"
     with open(vocab_path, 'rb') as f:
         vocab = pickle.load(f)
 elif EMBEDDING == "glove":

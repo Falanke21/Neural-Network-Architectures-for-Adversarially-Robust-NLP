@@ -13,8 +13,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     df = pd.read_csv(args.csv)
-    df = df[df['label'] != 'label']
-    df['label'] = df['label'].astype(np.float64)
     # df format: stars, text
     # print first row
     print(f"First row: {df.iloc[0]}")
