@@ -18,16 +18,20 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
-    parser.add_argument('--config', type=str, required=True)
+    parser.add_argument('--config-file', type=str, required=True)
     args = parser.parse_args()
 
+    # import configs
+    spec = importlib.util.spec_from_file_location("Config", args.config_file)
+    config_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config_module)
     if args.model_choice == 'lstm':
-        Config = importlib.import_module('config.' + args.config).LSTMConfig
+        Config = config_module.LSTMConfig
         from lstm.my_lstm import MyLSTM
     elif args.model_choice == 'transformer':
-        Config = importlib.import_module('config.' + args.config).TransformerConfig
+        Config = config_module.TransformerConfig
         from transformer.my_transformer import MyTransformer
-    print(f"Using config: {args.config}")
+    print(f"Using config {Config.__name__} from {args.config_file}")
 
     device = torch.device(
         'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')
