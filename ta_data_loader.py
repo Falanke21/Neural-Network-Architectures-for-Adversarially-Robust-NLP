@@ -5,7 +5,7 @@ import pandas as pd
 import textattack
 
 # Load a dataset
-data_path = "data/data300k/test.csv"
+data_path = "data/data300k-with-3stars/test.csv"
 df = pd.read_csv(data_path)
 # there are some rows with label = 'label', we need to remove them
 df = df[df['label'] != 'label']
