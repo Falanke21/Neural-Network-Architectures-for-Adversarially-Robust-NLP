@@ -1,9 +1,16 @@
+# data and cache
 __pycache__/
 checkpoints/
 data/
 .vscode/
 
-clusterjob.sh
+# cluster job files
+clusterjob*.sh
+# example files
 utils/print.py
 
+# cluster output files
 *.out
+
+# symlink to data
+vol_folder
