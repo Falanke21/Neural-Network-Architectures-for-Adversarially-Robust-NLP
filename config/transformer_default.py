@@ -3,14 +3,14 @@ class TransformerConfig:
     USE_GLOVE = False
     GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
     GLOVE_EMBEDDING_SIZE = 300
-    NUM_EPOCHS = 47
+    NUM_EPOCHS = 50
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
     LEARNING_RATE = 1e-4
 
     BETAS = (0.9, 0.98)  # same as original paper
     ADAM_EPSILON = 1e-9  # same as original paper
-    WEIGHT_DECAY = 1e-6  # 0 means no weight decay
+    WEIGHT_DECAY = 1e-5  # 0 means no weight decay
     GRADIENT_CLIP = True
     GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True
