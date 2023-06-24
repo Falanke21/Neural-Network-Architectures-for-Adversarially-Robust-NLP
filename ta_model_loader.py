@@ -12,19 +12,25 @@ from project.utils import tokenizer
 MODEL_TYPE = "transformer"
 EMBEDDING = "custom"
 # EMBEDDING = "glove"
-model_path = f"vol_folder/model_zoo/data300k/transformer_custom_no_weight_decay/transformer_model.pt"
-config_name = f"{MODEL_TYPE}_default" if EMBEDDING == "custom" else f"{MODEL_TYPE}_glove"
+output_dir = f"vol_folder/model_zoo/data300k-with-3stars/transformer_custom_weight_decay1e4"
+model_path = f"{output_dir}/transformer_model_epoch45.pt"
+config_file = f"{output_dir}/{MODEL_TYPE}_default.py" \
+    if EMBEDDING == "custom" else f"{output_dir}/{MODEL_TYPE}_glove.py"
 print(f"Loading model from {model_path}")
-print(f"Using config: {config_name}")
+
+# import configs
+spec = importlib.util.spec_from_file_location("Config", config_file)
+config_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(config_module)
+if MODEL_TYPE == 'lstm':
+    Config = config_module.LSTMConfig
+    from project.lstm.my_lstm import MyLSTM
+elif MODEL_TYPE == 'transformer':
+    Config = config_module.TransformerConfig
+    from project.transformer.my_transformer import MyTransformer
+print(f"Using config {Config.__name__} from {config_file}")
 
 # Load the model
-if MODEL_TYPE == "lstm":
-    from project.lstm.my_lstm import MyLSTM
-    Config = importlib.import_module('project.config.' + config_name).LSTMConfig
-elif MODEL_TYPE == "transformer":
-    from project.transformer.my_transformer import MyTransformer
-    Config = importlib.import_module('project.config.' + config_name).TransformerConfig
-
 if EMBEDDING == "custom":
     vocab_path = "data/vocab300k.pkl"
     with open(vocab_path, 'rb') as f:
