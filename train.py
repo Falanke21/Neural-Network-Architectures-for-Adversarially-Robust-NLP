@@ -121,14 +121,9 @@ if __name__ == '__main__':
     parser.add_argument('--loss-values', action='store_true', default=False, help='Output txt files of loss values')
     args = parser.parse_args()
 
-    # create output directory if necessary
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    if args.checkpoints:
-        if not os.path.exists(f'{args.output_dir}/checkpoints'):
-            os.makedirs(f'{args.output_dir}/checkpoints')
-    print(f'Will write outputs to "{args.output_dir}"')
-
+    # check config file exists
+    if not os.path.isfile(args.config_file):
+        raise FileNotFoundError(f"Config file {args.config_file} not found")
     # import configs
     spec = importlib.util.spec_from_file_location("Config", args.config_file)
     config_module = importlib.util.module_from_spec(spec)
@@ -140,6 +135,14 @@ if __name__ == '__main__':
         Config = config_module.TransformerConfig
         from transformer.my_transformer import MyTransformer
     print(f"Using config {Config.__name__} from {args.config_file}")
+    
+    # create output directory if necessary
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    if args.checkpoints:
+        if not os.path.exists(f'{args.output_dir}/checkpoints'):
+            os.makedirs(f'{args.output_dir}/checkpoints')
+    print(f'Will write outputs to "{args.output_dir}"')
 
     # load custom vocab or GloVe
     if Config.USE_GLOVE:
