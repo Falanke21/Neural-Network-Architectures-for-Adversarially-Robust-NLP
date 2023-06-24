@@ -9,7 +9,7 @@ class ScaleDotProductAttention(nn.Module):
     compute scale dot product attention
 
     Query : given sentence that we focused on (decoder)
-    Key : every sentence to check relationship with Qeury(encoder)
+    Key : every sentence to check relationship with Query(encoder)
     Value : every sentence same with Key (encoder)
     """
 
@@ -17,7 +17,7 @@ class ScaleDotProductAttention(nn.Module):
         super(ScaleDotProductAttention, self).__init__()
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, q, k, v, mask=None, e=1e-12):
+    def forward(self, q, k, v, mask=None):
         # input is 4 dimension tensor
         # [batch_size, head, length, d_tensor]
         batch_size, head, length, d_tensor = k.size()

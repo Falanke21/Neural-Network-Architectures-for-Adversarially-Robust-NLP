@@ -23,3 +23,5 @@ class TransformerConfig:
     FFN_HIDDEN = 1024
     N_HEAD = 5
     DROPOUT = 0.2
+
+    # ATTENTION_TYPE = 'additive'  # 'dot_product' or 'additive'

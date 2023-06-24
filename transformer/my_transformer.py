@@ -19,6 +19,10 @@ class MyTransformer(nn.Module):
         :param device: str - The device (e.g. 'cpu' or 'cuda') where the model will be run.
         """
         super(MyTransformer, self).__init__()
+        if hasattr(Config, 'ATTENTION_TYPE'):
+            attention_type = Config.ATTENTION_TYPE
+        else:
+            attention_type = 'dot_product'  # default scale dot product attention
         self.vocab_size = vocab_size
         self.d_model = Config.D_MODEL
         self.output_dim = output_dim
@@ -45,7 +49,7 @@ class MyTransformer(nn.Module):
         self.drop_out = nn.Dropout(p=self.drop_prob)
         # Support multiple layers
         self.layers = nn.ModuleList(
-            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head, self.drop_prob)
+            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head, self.drop_prob, attention_type)
              for _ in range(self.n_layers)])
         self.fc = nn.Linear(self.d_model, output_dim)
 

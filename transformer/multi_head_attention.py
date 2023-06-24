@@ -3,18 +3,26 @@ import torch
 import torch.nn as nn
 
 from .scale_dot_product_attention import ScaleDotProductAttention
+from .additive_attention import AdditiveAttention
 
 
 class MultiHeadAttention(nn.Module):
 
-    def __init__(self, d_model, n_head):
+    def __init__(self, d_model, n_head, attention_type='dot_product'):
         super(MultiHeadAttention, self).__init__()
         self.n_head = n_head
-        self.attention = ScaleDotProductAttention()
         self.w_q = nn.Linear(d_model, d_model)
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
         self.w_concat = nn.Linear(d_model, d_model)
+        if attention_type not in ['dot_product', 'additive']:
+            raise ValueError(
+                "attention type should be one of ['dot_product', 'additive']")
+        if attention_type == 'dot_product':
+            self.attention = ScaleDotProductAttention()
+        elif attention_type == 'additive':
+            d_tensor = d_model // self.n_head
+            self.attention = AdditiveAttention(d_tensor)
 
     def forward(self, q, k, v, mask=None):
         # 1. dot product with weight matrices
