@@ -115,17 +115,18 @@ if __name__ == '__main__':
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
     parser.add_argument('--load-trained', action='store_true', default=False)
-    parser.add_argument('--config-file', type=str, required=True)
     parser.add_argument('--output-dir', type=str, default='models')
     parser.add_argument('--checkpoints', action='store_true', default=False)
     parser.add_argument('--loss-values', action='store_true', default=False, help='Output txt files of loss values')
     args = parser.parse_args()
 
+    # default config file to output_dir/config.py
+    config_file = f'{args.output_dir}/config.py'
     # check config file exists
-    if not os.path.isfile(args.config_file):
-        raise FileNotFoundError(f"Config file {args.config_file} not found")
+    if not os.path.isfile(config_file):
+        raise FileNotFoundError(f"Config file {config_file} not found")
     # import configs
-    spec = importlib.util.spec_from_file_location("Config", args.config_file)
+    spec = importlib.util.spec_from_file_location("Config", config_file)
     config_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(config_module)
     if args.model_choice == 'lstm':
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     elif args.model_choice == 'transformer':
         Config = config_module.TransformerConfig
         from transformer.my_transformer import MyTransformer
-    print(f"Using config {Config.__name__} from {args.config_file}")
+    print(f"Using config {Config.__name__} from {config_file}")
     
     # create output directory if necessary
     if not os.path.exists(args.output_dir):
