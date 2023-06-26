@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .encoder import EncoderLayer
+from .encoder_layer import EncoderLayer
 from .positional_encoding import PositionalEncoding
 
 
