@@ -24,4 +24,4 @@ class TransformerConfig:
     N_HEAD = 5
     DROPOUT = 0.2
 
-    # ATTENTION_TYPE = 'additive'  # 'dot_product' or 'additive'
+    ATTENTION_TYPE = 'dot_product'  # 'dot_product' or 'additive' or 'paas'

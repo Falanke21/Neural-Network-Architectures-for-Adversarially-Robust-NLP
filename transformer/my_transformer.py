@@ -49,7 +49,8 @@ class MyTransformer(nn.Module):
         self.drop_out = nn.Dropout(p=self.drop_prob)
         # Support multiple layers
         self.layers = nn.ModuleList(
-            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head, self.drop_prob, attention_type)
+            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head,
+                          self.drop_prob, self.max_len, attention_type)
              for _ in range(self.n_layers)])
         self.fc = nn.Linear(self.d_model, output_dim)
 
