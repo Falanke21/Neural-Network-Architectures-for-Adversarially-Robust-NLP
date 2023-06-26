@@ -13,9 +13,8 @@ MODEL_TYPE = "transformer"
 EMBEDDING = "custom"
 # EMBEDDING = "glove"
 output_dir = f"vol_folder/model_zoo/data300k-with-3stars/transformer_custom_weight_decay1e4"
-model_path = f"{output_dir}/transformer_model_epoch45.pt"
-config_file = f"{output_dir}/{MODEL_TYPE}_default.py" \
-    if EMBEDDING == "custom" else f"{output_dir}/{MODEL_TYPE}_glove.py"
+model_path = f"{output_dir}/transformer_model_epoch6.pt"
+config_file = f"{output_dir}/config.py"
 print(f"Loading model from {model_path}")
 
 # import configs
