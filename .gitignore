@@ -14,3 +14,6 @@ utils/print.py
 
 # symlink to data
 vol_folder
+
+# temporary training outputs
+tmp/

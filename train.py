@@ -115,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
     parser.add_argument('--load-trained', action='store_true', default=False)
-    parser.add_argument('--output-dir', type=str, default='models')
+    parser.add_argument('--output-dir', type=str, default='tmp')
     parser.add_argument('--checkpoints', action='store_true', default=False)
     parser.add_argument('--loss-values', action='store_true', default=False, help='Output txt files of loss values')
     args = parser.parse_args()

@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--model-choice', type=str,
                         required=True, choices=['lstm', 'transformer'])
-    parser.add_argument('--output-dir', type=str, default='models')
+    parser.add_argument('--output-dir', type=str, default='tmp')
     args = parser.parse_args()
 
     # default config file to output_dir/config.py
