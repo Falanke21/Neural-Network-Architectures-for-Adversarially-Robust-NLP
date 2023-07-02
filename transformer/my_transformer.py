@@ -63,7 +63,7 @@ class MyTransformer(nn.Module):
                 "Input must be a 1D or 2D tensor. Got tensor of shape: {}".format(x.shape))
         # x is a batched list of ids (batch_size, seq_len)
         x = self.embedding(x)  # (batch_size, seq_len, d_model)
-        x = x + self.positional_encoding(x)
+        x = x + self.positional_encoding(x)  # TODO add option here to not use positional encoding
         x = self.drop_out(x)
         for layer in self.layers:
             x = layer(x, None)  # (batch_size, seq_len, d_model)

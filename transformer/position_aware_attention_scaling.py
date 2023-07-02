@@ -19,7 +19,7 @@ class PositionAwareAttentionScaling(nn.Module):
     def __init__(self, max_seq_length):
         super(PositionAwareAttentionScaling, self).__init__()
         self.softmax = nn.Softmax(dim=-1)
-        self.Wp = nn.Parameter(torch.ones(max_seq_length, max_seq_length))
+        self.Wp = nn.Parameter(torch.ones(max_seq_length, max_seq_length))  # TODO check more about this in their appendix
         print("Using Position-Aware Attention Scaling")
 
     def forward(self, q, k, v, mask=None):

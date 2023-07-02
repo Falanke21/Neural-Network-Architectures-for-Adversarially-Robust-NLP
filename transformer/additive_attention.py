@@ -31,8 +31,8 @@ class AdditiveAttention(nn.Module):
         # 1. calculate alignment model output tensor e
         # [batch_size, head, length, d_tensor]
         # e = torch.tanh(self.Wa(q) + self.Ua(k))
-        e1 = self.Wa(q)
-        e2 = self.Ua(k)
+        e1 = self.Wa(q)  # [batch_size, head, length, d_tensor]
+        e2 = self.Ua(k)  # [batch_size, head, length, d_tensor]
         e3 = e1 + e2
         e = torch.tanh(e3)
         e = self.va(e).squeeze(-1)  # [batch_size, head, length]
