@@ -25,3 +25,4 @@ class TransformerConfig:
     DROPOUT = 0.2
 
     ATTENTION_TYPE = 'dot_product'  # 'dot_product' or 'additive' or 'paas'
+    POSITIONAL_ENCODING = True  # Default is True

@@ -23,6 +23,10 @@ class MyTransformer(nn.Module):
             attention_type = Config.ATTENTION_TYPE
         else:
             attention_type = 'dot_product'  # default scale dot product attention
+        if hasattr(Config, 'POSITIONAL_ENCODING'):
+            self.use_pe = Config.POSITIONAL_ENCODING
+        else:
+            self.use_pe = True
         self.vocab_size = vocab_size
         self.d_model = Config.D_MODEL
         self.output_dim = output_dim
@@ -44,8 +48,9 @@ class MyTransformer(nn.Module):
         else:
             self.embedding = nn.Embedding(
                 vocab_size, self.d_model, padding_idx=0)
-        self.positional_encoding = PositionalEncoding(
-            self.d_model, self.max_len, device)
+        if self.use_pe:
+            self.positional_encoding = PositionalEncoding(
+                self.d_model, self.max_len, device)
         self.drop_out = nn.Dropout(p=self.drop_prob)
         # Support multiple layers
         self.layers = nn.ModuleList(
@@ -63,7 +68,8 @@ class MyTransformer(nn.Module):
                 "Input must be a 1D or 2D tensor. Got tensor of shape: {}".format(x.shape))
         # x is a batched list of ids (batch_size, seq_len)
         x = self.embedding(x)  # (batch_size, seq_len, d_model)
-        x = x + self.positional_encoding(x)  # TODO add option here to not use positional encoding
+        if self.use_pe:
+            x = x + self.positional_encoding(x)
         x = self.drop_out(x)
         for layer in self.layers:
             x = layer(x, None)  # (batch_size, seq_len, d_model)
