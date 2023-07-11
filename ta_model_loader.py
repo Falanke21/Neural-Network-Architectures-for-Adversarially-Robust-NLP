@@ -2,18 +2,22 @@
 import importlib
 import pickle
 import torch
+import os
 from textattack.models.wrappers import PyTorchModelWrapper
 
 # Remember to set the PYTHONPATH environment variable to the root of the project
 from project.utils import tokenizer
+# Remember to set the TA_VICTIM_MODEL_PATH environment variable
+assert os.environ.get(
+    "TA_VICTIM_MODEL_PATH") is not None, "Please set the TA_VICTIM_MODEL_PATH environment variable"
 
 # Choose the model type
 # MODEL_TYPE = "lstm"
 MODEL_TYPE = "transformer"
 EMBEDDING = "custom"
 # EMBEDDING = "glove"
-output_dir = f"vol_folder/model_zoo/data300k-with-3stars/transformer_custom_weight_decay1e4"
-model_path = f"{output_dir}/transformer_model_epoch6.pt"
+model_path = os.environ.get("TA_VICTIM_MODEL_PATH")
+output_dir = model_path[:model_path.rfind("/")]
 config_file = f"{output_dir}/config.py"
 print(f"Loading model from {model_path}")
 
@@ -76,7 +80,7 @@ class ModelWithSigmoid(torch.nn.Module):
         logits = self.model(x)
         output = torch.sigmoid(logits)
         return torch.cat((1 - output, output), dim=1)
-    
+
     def get_input_embeddings(self):
         """
         Return the input embedding layer
@@ -85,7 +89,6 @@ class ModelWithSigmoid(torch.nn.Module):
 
 
 my_model = ModelWithSigmoid(my_model)
-# print(f"Model structure: {my_model}")
 # Load the tokenizer
 tokenizer = tokenizer.MyTokenizer(
     vocab, Config.MAX_SEQ_LENGTH, remove_stopwords=False)
