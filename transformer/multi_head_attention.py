@@ -15,9 +15,10 @@ class MultiHeadAttention(nn.Module):
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
         self.w_concat = nn.Linear(d_model, d_model)
-        if attention_type not in ['dot_product', 'additive', 'paas']:
+        valid_a_types = ['dot_product', 'additive', 'paas', 'paas-linear']
+        if attention_type not in valid_a_types:
             raise ValueError(
-                "attention type should be one of ['dot_product', 'additive', 'paas']")
+                f"attention_type should be one of {valid_a_types}, but got {attention_type}")
         if attention_type == 'dot_product':
             self.attention = ScaleDotProductAttention()
         elif attention_type == 'additive':
@@ -25,6 +26,9 @@ class MultiHeadAttention(nn.Module):
             self.attention = AdditiveAttention(d_tensor)
         elif attention_type == 'paas':
             self.attention = PositionAwareAttentionScaling(max_seq_length)
+        elif attention_type == 'paas-linear':
+            self.attention = PositionAwareAttentionScaling(
+                max_seq_length, wp_init='linear')
 
     def forward(self, q, k, v, mask=None):
         # 1. dot product with weight matrices

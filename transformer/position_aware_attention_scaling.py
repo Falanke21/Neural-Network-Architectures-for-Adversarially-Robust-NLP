@@ -16,10 +16,15 @@ class PositionAwareAttentionScaling(nn.Module):
     Value : every sentence same with Key (encoder)
     """
 
-    def __init__(self, max_seq_length):
+    def __init__(self, max_seq_length, wp_init="ones"):
         super(PositionAwareAttentionScaling, self).__init__()
         self.softmax = nn.Softmax(dim=-1)
-        self.Wp = nn.Parameter(torch.ones(max_seq_length, max_seq_length))  # TODO check more about this in their appendix
+        if wp_init == "ones":
+            self.Wp = nn.Parameter(torch.ones(max_seq_length, max_seq_length))
+        elif wp_init == "linear":
+            # initialize Wp as in nn.Linear
+            self.Wp = nn.Linear(
+                max_seq_length, max_seq_length, bias=False).weight
         print("Using Position-Aware Attention Scaling")
 
     def forward(self, q, k, v, mask=None):
@@ -30,7 +35,8 @@ class PositionAwareAttentionScaling(nn.Module):
         # 1. dot product Query with Key^T to compute similarity
         k_t = k.transpose(2, 3)  # transpose
         score = (q @ k_t)
-        score = torch.mul(score, self.Wp)  # apply position-aware attention scaling
+        # apply position-aware attention scaling
+        score = torch.mul(score, self.Wp)
         score = score / math.sqrt(d_tensor)
 
         # 2. apply masking (opt)
