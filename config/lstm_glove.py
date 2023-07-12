@@ -1,5 +1,6 @@
 class LSTMConfig:
     USE_GPU = True
+    CUSTOM_VOCAB_PATH = 'data/vocab300k.pkl'
     USE_GLOVE = True
     GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
     GLOVE_EMBEDDING_SIZE = 300
