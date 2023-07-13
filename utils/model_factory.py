@@ -1,5 +1,6 @@
 # Get model from config file
 import importlib
+import numpy as np
 import pickle
 import torch
 import os
@@ -26,15 +27,21 @@ def construct_model_from_config(config_path: str):
     print(f"Using config {Config.__name__} from {config_path}")
 
     # load custom vocab or GloVe
-    if Config.USE_GLOVE:
+    if Config.WORD_EMBEDDING == 'custom':
+        with open(Config.CUSTOM_VOCAB_PATH, 'rb') as f:
+            vocab = pickle.load(f)
+    elif Config.WORD_EMBEDDING == 'glove':
         import torchtext
         glove = torchtext.vocab.GloVe(
             name='6B', dim=Config.GLOVE_EMBEDDING_SIZE,
             cache=Config.GLOVE_CACHE_DIR)
         vocab = glove
+    elif Config.WORD_EMBEDDING == 'paragramcf':
+        word_list_file = os.path.join(Config.PARAGRAMCF_DIR, 'wordlist.pickle')
+        word2index = np.load(word_list_file, allow_pickle=True)
+        vocab = word2index
     else:
-        with open(Config.CUSTOM_VOCAB_PATH, 'rb') as f:
-            vocab = pickle.load(f)
+        raise ValueError("Config.WORD_EMBEDDING must be one of 'custom', 'glove' and 'paragramcf'")
 
     device = torch.device(
         'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')

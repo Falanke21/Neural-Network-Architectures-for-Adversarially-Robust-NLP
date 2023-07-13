@@ -1,3 +1,6 @@
+import os
+
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -36,18 +39,24 @@ class MyTransformer(nn.Module):
         self.ffn_hidden = Config.FFN_HIDDEN
         self.n_layers = Config.NUM_LAYERS
 
-        if Config.USE_GLOVE:
+        if Config.WORD_EMBEDDING == 'custom':
+            self.embedding = nn.Embedding(
+                vocab_size, self.d_model, padding_idx=0)
+        elif Config.WORD_EMBEDDING == 'glove':
             # Use pretrained GloVe embeddings
             import torchtext
             glove = torchtext.vocab.GloVe(name='6B',
                                           dim=Config.GLOVE_EMBEDDING_SIZE,
                                           cache=Config.GLOVE_CACHE_DIR)
-            self.embedding = torch.nn.Embedding.from_pretrained(
+            print(f"Loading GloVe embeddings of shape: {glove.vectors.shape}")
+            self.embedding = nn.Embedding.from_pretrained(
                 glove.vectors, freeze=True)
-            print(f"Loaded GloVe embeddings of shape: {glove.vectors.shape}")
-        else:
-            self.embedding = nn.Embedding(
-                vocab_size, self.d_model, padding_idx=0)
+        elif Config.WORD_EMBEDDING == 'paragramcf':
+            word_embeddings_file = os.path.join(Config.PARAGRAMCF_DIR, "paragram.npy")
+            paragramcf = torch.from_numpy(np.load(word_embeddings_file))
+            print(f"Loading Paragram embeddings of shape: {paragramcf.shape}")
+            self.embedding = nn.Embedding.from_pretrained(paragramcf, freeze=True)
+
         if self.use_pe:
             self.positional_encoding = PositionalEncoding(
                 self.d_model, self.max_len, device)

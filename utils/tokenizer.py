@@ -6,6 +6,7 @@ from nltk.stem import WordNetLemmatizer
 
 # nltk.download('punkt')  # Uncomment this line if you haven't downloaded nltk punkt
 
+
 def tokenize(text: str, remove_stopwords: bool = False) -> list:
     '''
     Takes in a string of text, then performs the following:
@@ -26,6 +27,7 @@ def tokenize(text: str, remove_stopwords: bool = False) -> list:
     else:
         return [lemmatizer.lemmatize(word) for word in tokens]
 
+
 class MyTokenizer():
     """
     Wrapper for textattack tokenizer
@@ -33,15 +35,26 @@ class MyTokenizer():
 
     def __init__(self, vocab, seq_length, remove_stopwords: bool = False):
         """
-        :param vocab: torchtext.vocab.Vocab object, a mapping from tokens to indices,
-        or GloVe object from torchtext
+        :param vocab: a mapping object/dict from tokens to indices,
         :param remove_stopwords: whether to remove stopwords using nltk
         """
-        self.vocab = vocab
-        if vocab and not isinstance(self.vocab, torchtext.vocab.Vocab) and not isinstance(
-                self.vocab, torchtext.vocab.GloVe):
+        if vocab and not isinstance(vocab, torchtext.vocab.Vocab) and not isinstance(
+                vocab, torchtext.vocab.GloVe) and not isinstance(vocab, dict):
             raise ValueError(
-                "Vocab must be either torchtext.vocab.Vocab or torchtext.vocab.GloVe")
+                "Vocab must be either torchtext.vocab.Vocab or torchtext.vocab.GloVe or dict")
+        # Different vocab object has different ways to get the mappings
+        if isinstance(vocab, torchtext.vocab.Vocab):
+            self.word2id = vocab.get_stoi()
+            self.id2word = vocab.get_itos()
+        elif isinstance(vocab, torchtext.vocab.GloVe):
+            self.word2id = vocab.stoi
+            self.id2word = vocab.itos
+        elif isinstance(vocab, dict):
+            self.word2id = vocab
+            self.id2word = {}
+            for word, index in vocab.items():
+                self.id2word[index] = word
+
         self.seq_length = seq_length
         self.remove_stopwords = remove_stopwords
         self.pad_token_id = 0  # default pad token id (Textattack usage only)
@@ -60,21 +73,16 @@ class MyTokenizer():
         """
         Return a list of ids for each token in the list of string tokens.
         """
-        # Different vocab object has different ways to get the stoi mapping
-        if isinstance(self.vocab, torchtext.vocab.Vocab):
-            stoi = self.vocab.get_stoi()
-        elif isinstance(self.vocab, torchtext.vocab.GloVe):
-            stoi = self.vocab.stoi
         indices = self.seq_length * [0]  # initialize as 0s
         for i, token in enumerate(token_list):
             if i >= self.seq_length:
                 # Reached the maximum sequence length
                 break
-            if token in stoi:
-                indices[i] = stoi[token]
+            if token in self.word2id:
+                indices[i] = self.word2id[token]
             else:
                 # Unknown token
-                indices[i] = stoi['<unk>'] if '<unk>' in stoi else 0
+                indices[i] = self.word2id['<unk>'] if '<unk>' in self.word2id else 0
         return indices
 
     def __call__(self, text) -> list:
@@ -101,14 +109,7 @@ class MyTokenizer():
         """
         Convert an id to a word. (Textattack usage only)
         """
-        if isinstance(self.vocab, torchtext.vocab.GloVe):
-            return self.vocab.itos[id]
-        elif isinstance(self.vocab, torchtext.vocab.Vocab):
-            return self.vocab.get_itos()[id]
-        else:
-            raise ValueError(
-                f"vocab must have either itos or get_itos() method, \
-                    but got {type(self.vocab)} instead.")
+        return self.id2word[id]
 
     def convert_ids_to_tokens(self, ids: list) -> list:
         """

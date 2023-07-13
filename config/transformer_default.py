@@ -1,9 +1,13 @@
 class TransformerConfig:
     USE_GPU = True
+    WORD_EMBEDDING = "custom"  # "custom", "glove" or "paragramcf"
+    # Custom word embedding settings
     CUSTOM_VOCAB_PATH = 'data/vocab300k.pkl'
-    USE_GLOVE = False
+    # GloVe word embedding settings
     GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
     GLOVE_EMBEDDING_SIZE = 300
+    # Paragramcf word embedding settings
+    PARAGRAMCF_DIR = '/vol/bitbucket/fh422/paragramcf'
     NUM_EPOCHS = 50
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
@@ -11,7 +15,7 @@ class TransformerConfig:
 
     BETAS = (0.9, 0.98)  # same as original paper
     ADAM_EPSILON = 1e-9  # same as original paper
-    WEIGHT_DECAY = 1e-5  # 0 means no weight decay
+    WEIGHT_DECAY = 1e-4  # 0 means no weight decay
     GRADIENT_CLIP = True
     GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True

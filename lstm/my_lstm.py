@@ -1,4 +1,8 @@
+import numpy as np
 import torch
+import torch.nn as nn
+
+import os
 
 
 class MyLSTM(torch.nn.Module):
@@ -6,20 +10,32 @@ class MyLSTM(torch.nn.Module):
         super(MyLSTM, self).__init__()
         self.num_layers = Config.LSTM_NUM_LAYERS
         self.hidden_size = Config.LSTM_HIDDEN_SIZE
-        if Config.USE_GLOVE:
+
+        if Config.WORD_EMBEDDING == 'custom':
+            # Train embeddings from scratch
+            self.embedding_size = Config.LSTM_EMBEDDING_SIZE
+            self.embedding = nn.Embedding(
+                vocab_size, self.embedding_size, padding_idx=0)
+        elif Config.WORD_EMBEDDING == 'glove':
             # Use pretrained GloVe embeddings
             import torchtext
             self.embedding_size = Config.GLOVE_EMBEDDING_SIZE
-            glove = torchtext.vocab.GloVe(name='6B', dim=self.embedding_size, cache=Config.GLOVE_CACHE_DIR)
-            self.embedding = torch.nn.Embedding.from_pretrained(glove.vectors, freeze=True)
-            print(f"Loaded GloVe embeddings of shape: {glove.vectors.shape}")
-        else:
-            # Train embeddings from scratch
-            self.embedding_size = Config.LSTM_EMBEDDING_SIZE
-            self.embedding = torch.nn.Embedding(
-                vocab_size, self.embedding_size, padding_idx=0)
+            glove = torchtext.vocab.GloVe(
+                name='6B', dim=self.embedding_size, cache=Config.GLOVE_CACHE_DIR)
+            print(f"Loading GloVe embeddings of shape: {glove.vectors.shape}")
+            self.embedding = torch.nn.Embedding.from_pretrained(
+                glove.vectors, freeze=True)
+        elif Config.WORD_EMBEDDING == 'paragramcf':
+            self.embedding_size = 300
+            word_embeddings_file = os.path.join(
+                Config.PARAGRAMCF_DIR, "paragram.npy")
+            paragramcf = torch.from_numpy(np.load(word_embeddings_file))
+            print(f"Loading Paragram embeddings of shape: {paragramcf.shape}")
+            self.embedding = nn.Embedding.from_pretrained(
+                paragramcf, freeze=True)
+
         self.lstm = torch.nn.LSTM(
-            self.embedding_size, self.hidden_size, self.num_layers, 
+            self.embedding_size, self.hidden_size, self.num_layers,
             batch_first=True, bidirectional=True, dropout=Config.LSTM_DROUPOUT)
         self.fc = torch.nn.Linear(self.hidden_size*2, num_classes)
         self.device = device

@@ -71,7 +71,7 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
         # save checkpoint
         if checkpoints:
             try:
-                checkpoint_path = f'{args.output_dir}/checkpoints/{args.model_choice}_model_epoch{epoch+1}.pt'
+                checkpoint_path = f'{args.output_dir}/checkpoints/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch+1}.pt'
                 torch.save(model.state_dict(), checkpoint_path)
             except OSError as e:
                 print(f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
@@ -99,11 +99,11 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
 
         # plot loss and accuracy values to file
         if args.loss_values:
-            with open(f'{args.output_dir}/{args.model_choice}_train_losses.txt', 'a') as f:
+            with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_train_losses.txt', 'a') as f:
                 f.write(f'{train_losses[-1]}\n')
-            with open(f'{args.output_dir}/{args.model_choice}_val_losses.txt', 'a') as f:
+            with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_losses.txt', 'a') as f:
                 f.write(f'{val_losses[-1]}\n')
-            with open(f'{args.output_dir}/{args.model_choice}_val_accuracy.txt', 'a') as f:
+            with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_accuracy.txt', 'a') as f:
                 f.write(f'{val_accuracy[-1]}\n')
 
 
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     model, Config, vocab, device = construct_model_from_config(config_path)
 
     if args.load_trained:
-        model_path = f'{args.output_dir}/' + args.model_choice + '_model.pt'
+        model_path = f'{args.output_dir}/' + os.environ["MODEL_CHOICE"] + '_model.pt'
         model.load_state_dict(torch.load(model_path))
         print(f"Loaded trained model from {model_path}!")
     # print num of parameters
@@ -181,5 +181,5 @@ if __name__ == '__main__':
           val_loader)
 
     # save model
-    torch.save(model.state_dict(), f'{args.output_dir}/{args.model_choice}_model.pt')
-    print(f"Model saved to {args.output_dir}/{args.model_choice}_model.pt")
+    torch.save(model.state_dict(), f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
+    print(f'Model saved to {args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')

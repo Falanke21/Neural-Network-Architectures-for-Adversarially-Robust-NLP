@@ -1,9 +1,15 @@
 class LSTMConfig:
     USE_GPU = True
+
+    WORD_EMBEDDING = "custom"  # "custom", "glove" or "paragramcf"
+    # Custom word embedding settings
     CUSTOM_VOCAB_PATH = 'data/vocab300k.pkl'
-    USE_GLOVE = False
+    # GloVe word embedding settings
     GLOVE_CACHE_DIR = '/vol/bitbucket/fh422/torchtext_cache'
     GLOVE_EMBEDDING_SIZE = 300
+    # Paragramcf word embedding settings
+    PARAGRAMCF_DIR = '/vol/bitbucket/fh422/paragramcf'
+
     NUM_EPOCHS = 50
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
@@ -11,7 +17,7 @@ class LSTMConfig:
 
     BETAS = (0.9, 0.999)
     ADAM_EPSILON = 1e-8
-    WEIGHT_DECAY = 1e-5
+    WEIGHT_DECAY = 1e-4
     GRADIENT_CLIP = True
     GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True
