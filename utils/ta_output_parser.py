@@ -8,6 +8,7 @@ import os
 model_name = os.environ["TA_VICTIM_MODEL_NAME"]
 attack_recipe = os.environ["TA_ATTACK_RECIPE"]
 model_path = os.environ["TA_VICTIM_MODEL_PATH"]
+epoch_num = os.environ["TA_VICTIM_MODEL_EPOCH"]
 output_dir = model_path[:model_path.rfind("/")]
 
 original_accuracy = None
@@ -29,7 +30,7 @@ for line in fileinput.input():
     if "Average perturbed word %:" in line:
         avg_perturbed_word = line.split("|")[2].strip()
 
-csv_filename = f"{output_dir}/ta_results.csv"
+csv_filename = f"{output_dir}/ta_results_{epoch_num}.csv"
 # if csv_filename is not found, we initialize it with the header
 if not os.path.exists(csv_filename):
     with open(csv_filename, "w") as f:
