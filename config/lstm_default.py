@@ -15,6 +15,7 @@ class LSTMConfig:
     BATCH_SIZE = 200
     LEARNING_RATE = 0.001
 
+    USE_ADAMW = False
     BETAS = (0.9, 0.999)
     ADAM_EPSILON = 1e-8
     WEIGHT_DECAY = 1e-4

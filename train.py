@@ -172,9 +172,15 @@ if __name__ == '__main__':
 
     # define binary cross entropy loss function and optimizer
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=Config.LEARNING_RATE,
-                                 betas=Config.BETAS, eps=Config.ADAM_EPSILON,
-                                 weight_decay=Config.WEIGHT_DECAY)
+    if hasattr(Config, 'USE_ADAMW') and Config.USE_ADAMW:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=Config.LEARNING_RATE,
+                                      betas=Config.BETAS, eps=Config.ADAM_EPSILON,
+                                      weight_decay=Config.WEIGHT_DECAY)
+        print("Using AdamW optimizer")
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=Config.LEARNING_RATE,
+                                    betas=Config.BETAS, eps=Config.ADAM_EPSILON,
+                                    weight_decay=Config.WEIGHT_DECAY)
 
     # train model
     train(model, Config, criterion, optimizer, device, args.checkpoints, train_loader,

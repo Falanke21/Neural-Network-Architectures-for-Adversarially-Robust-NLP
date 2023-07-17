@@ -13,6 +13,7 @@ class TransformerConfig:
     BATCH_SIZE = 200
     LEARNING_RATE = 1e-4
 
+    USE_ADAMW = False
     BETAS = (0.9, 0.98)  # same as original paper
     ADAM_EPSILON = 1e-9  # same as original paper
     WEIGHT_DECAY = 1e-4  # 0 means no weight decay
