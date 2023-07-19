@@ -4,6 +4,7 @@ import torch.nn as nn
 from .scale_dot_product_attention import ScaleDotProductAttention
 from .additive_attention import AdditiveAttention
 from .position_aware_attention_scaling import PositionAwareAttentionScaling
+from .sim_attention import SimAttention
 
 
 class MultiHeadAttention(nn.Module):
@@ -15,7 +16,7 @@ class MultiHeadAttention(nn.Module):
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
         self.w_concat = nn.Linear(d_model, d_model)
-        valid_a_types = ['dot_product', 'additive', 'paas', 'paas-linear']
+        valid_a_types = ['dot_product', 'additive', 'paas', 'paas-linear', 'simal1', 'simal2']
         if attention_type not in valid_a_types:
             raise ValueError(
                 f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -29,6 +30,10 @@ class MultiHeadAttention(nn.Module):
         elif attention_type == 'paas-linear':
             self.attention = PositionAwareAttentionScaling(
                 max_seq_length, wp_init='linear')
+        elif attention_type == 'simal1':
+            self.attention = SimAttention(use_l1_norm=True)
+        elif attention_type == 'simal2':
+            self.attention = SimAttention(use_l1_norm=False)
 
     def forward(self, q, k, v, mask=None):
         # 1. dot product with weight matrices
