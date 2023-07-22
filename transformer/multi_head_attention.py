@@ -5,6 +5,7 @@ from .scale_dot_product_attention import ScaleDotProductAttention
 from .additive_attention import AdditiveAttention
 from .position_aware_attention_scaling import PositionAwareAttentionScaling
 from .sim_attention import SimAttention
+from .soft_attention import SOFTAttention
 
 
 class MultiHeadAttention(nn.Module):
@@ -12,11 +13,10 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, n_head, max_seq_length, attention_type):
         super(MultiHeadAttention, self).__init__()
         self.n_head = n_head
-        self.w_q = nn.Linear(d_model, d_model)
-        self.w_k = nn.Linear(d_model, d_model)
-        self.w_v = nn.Linear(d_model, d_model)
-        self.w_concat = nn.Linear(d_model, d_model)
-        valid_a_types = ['dot_product', 'additive', 'paas', 'paas-linear', 'simal1', 'simal2']
+        self.q_same_as_k = False
+
+        valid_a_types = ['dot_product', 'additive', 'paas',
+                         'paas-linear', 'simal1', 'simal2', "soft"]
         if attention_type not in valid_a_types:
             raise ValueError(
                 f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -34,16 +34,32 @@ class MultiHeadAttention(nn.Module):
             self.attention = SimAttention(use_l1_norm=True)
         elif attention_type == 'simal2':
             self.attention = SimAttention(use_l1_norm=False)
+        elif attention_type == 'soft':
+            self.q_same_as_k = True
+            self.attention = SOFTAttention()
+
+        self.w_q = nn.Linear(d_model, d_model)
+        if not self.q_same_as_k:
+            self.w_k = nn.Linear(d_model, d_model)
+        self.w_v = nn.Linear(d_model, d_model)
+        self.w_concat = nn.Linear(d_model, d_model)
 
     def forward(self, q, k, v, mask=None):
         # 1. dot product with weight matrices
-        q, k, v = self.w_q(q), self.w_k(k), self.w_v(v)
+        q, v = self.w_q(q), self.w_v(v)
+        if not self.q_same_as_k:
+            k = self.w_k(k)
 
         # 2. split tensor by number of heads
-        q, k, v = self.split(q), self.split(k), self.split(v)
+        q, v = self.split(q), self.split(v)
+        if not self.q_same_as_k:
+            k = self.split(k)
 
         # 3. do scale dot product to compute similarity
-        out = self.attention(q, k, v, mask=mask)
+        if not self.q_same_as_k:
+            out = self.attention(q, k, v, mask=mask)
+        else:
+            out = self.attention(q, v, mask=mask)
 
         # 4. concat and pass to linear layer
         out = self.concat(out)

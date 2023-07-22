@@ -30,6 +30,6 @@ class TransformerConfig:
     N_HEAD = 5
     DROPOUT = 0.2
 
-    # 'dot_product' or 'additive' or 'paas' or 'paas-linear' or 'simal1' or 'simal2'
-    ATTENTION_TYPE = 'dot_product'  
+    # 'dot_product' or 'additive' or 'paas' or 'paas-linear' or 'simal1' or 'simal2' or 'soft'
+    ATTENTION_TYPE = 'dot_product'
     POSITIONAL_ENCODING = True  # Default is True

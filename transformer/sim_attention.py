@@ -22,6 +22,7 @@ class SimAttention(nn.Module):
         """
         super(SimAttention, self).__init__()
         self.use_l1_norm = use_l1_norm
+        print(f'Using {"l1" if use_l1_norm else "l2"} norm for SimA')
 
     def forward(self, q, k, v, mask=None):
         # input is 4 dimension tensor
