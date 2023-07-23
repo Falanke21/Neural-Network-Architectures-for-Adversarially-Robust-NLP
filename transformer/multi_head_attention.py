@@ -1,12 +1,6 @@
 # Reference: https://github.com/hyunwoongko/transformer
 import torch.nn as nn
-
-from .scale_dot_product_attention import ScaleDotProductAttention
-from .additive_attention import AdditiveAttention
-from .position_aware_attention_scaling import PositionAwareAttentionScaling
-from .sim_attention import SimAttention
-from .soft_attention import SOFTAttention
-from .linformer_attention import LinformerAttention
+from .attention_factory import get_attention_by_config
 
 
 class MultiHeadAttention(nn.Module):
@@ -18,35 +12,7 @@ class MultiHeadAttention(nn.Module):
         d_model = Config.D_MODEL
         max_seq_length = Config.MAX_SEQ_LENGTH
 
-        if hasattr(Config, 'ATTENTION_TYPE'):
-            attention_type = Config.ATTENTION_TYPE
-        else:
-            attention_type = 'dot_product'  # default scale dot product attention
-        valid_a_types = ['dot_product', 'additive', 'paas',
-                         'paas-linear', 'simal1', 'simal2', "soft", "linformer"]
-        if attention_type not in valid_a_types:
-            raise ValueError(
-                f"attention_type should be one of {valid_a_types}, but got {attention_type}")
-        if attention_type == 'dot_product':
-            self.attention = ScaleDotProductAttention()
-        elif attention_type == 'additive':
-            d_tensor = d_model // self.n_head
-            self.attention = AdditiveAttention(d_tensor)
-        elif attention_type == 'paas':
-            self.attention = PositionAwareAttentionScaling(max_seq_length)
-        elif attention_type == 'paas-linear':
-            self.attention = PositionAwareAttentionScaling(
-                max_seq_length, wp_init='linear')
-        elif attention_type == 'simal1':
-            self.attention = SimAttention(use_l1_norm=True)
-        elif attention_type == 'simal2':
-            self.attention = SimAttention(use_l1_norm=False)
-        elif attention_type == 'soft':
-            self.q_same_as_k = True
-            self.attention = SOFTAttention()
-        elif attention_type == 'linformer':
-            self.attention = LinformerAttention(
-                max_seq_length, Config.LINFORMER_K)
+        self.attention, self.q_same_as_k = get_attention_by_config(Config)
 
         self.w_q = nn.Linear(d_model, d_model)
         if not self.q_same_as_k:
