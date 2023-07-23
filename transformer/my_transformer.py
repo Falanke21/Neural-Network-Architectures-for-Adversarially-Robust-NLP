@@ -12,20 +12,11 @@ class MyTransformer(nn.Module):
     def __init__(self, Config, vocab_size, output_dim, device):
         """
         :param vocab_size: int - The size of the vocabulary of the input sequence.
-        :param d_model: int - The dimensionality of the model's hidden states and embeddings.
         :param ffn_hidden: int - The size of the feedforward layer in the encoder layers.
         :param output_dim: int - The size of the output layer.
-        :param n_head: int - The number of attention heads in the multi-head attention layer.
-        :param drop_prob: float - The dropout probability applied to the encoder layers.
-        :param max_len: int - The maximum length of the input sequence.
-        :param n_layers: int - The number of encoder layers in the model.
         :param device: str - The device (e.g. 'cpu' or 'cuda') where the model will be run.
         """
         super(MyTransformer, self).__init__()
-        if hasattr(Config, 'ATTENTION_TYPE'):
-            attention_type = Config.ATTENTION_TYPE
-        else:
-            attention_type = 'dot_product'  # default scale dot product attention
         if hasattr(Config, 'POSITIONAL_ENCODING'):
             self.use_pe = Config.POSITIONAL_ENCODING
         else:
@@ -33,10 +24,8 @@ class MyTransformer(nn.Module):
         self.vocab_size = vocab_size
         self.d_model = Config.D_MODEL
         self.output_dim = output_dim
-        self.n_head = Config.N_HEAD
         self.drop_prob = Config.DROPOUT
         self.max_len = Config.MAX_SEQ_LENGTH
-        self.ffn_hidden = Config.FFN_HIDDEN
         self.n_layers = Config.NUM_LAYERS
 
         if Config.WORD_EMBEDDING == 'custom':
@@ -52,10 +41,12 @@ class MyTransformer(nn.Module):
             self.embedding = nn.Embedding.from_pretrained(
                 glove.vectors, freeze=True)
         elif Config.WORD_EMBEDDING == 'paragramcf':
-            word_embeddings_file = os.path.join(Config.PARAGRAMCF_DIR, "paragram.npy")
+            word_embeddings_file = os.path.join(
+                Config.PARAGRAMCF_DIR, "paragram.npy")
             paragramcf = torch.from_numpy(np.load(word_embeddings_file))
             print(f"Loading Paragram embeddings of shape: {paragramcf.shape}")
-            self.embedding = nn.Embedding.from_pretrained(paragramcf, freeze=True)
+            self.embedding = nn.Embedding.from_pretrained(
+                paragramcf, freeze=True)
 
         if self.use_pe:
             self.positional_encoding = PositionalEncoding(
@@ -63,9 +54,7 @@ class MyTransformer(nn.Module):
         self.drop_out = nn.Dropout(p=self.drop_prob)
         # Support multiple layers
         self.layers = nn.ModuleList(
-            [EncoderLayer(self.d_model, self.ffn_hidden, self.n_head,
-                          self.drop_prob, self.max_len, attention_type)
-             for _ in range(self.n_layers)])
+            [EncoderLayer(Config) for _ in range(self.n_layers)])
         self.fc = nn.Linear(self.d_model, output_dim)
 
     def forward(self, x):

@@ -13,12 +13,15 @@ device = torch.device(
 
 class EncoderLayer(nn.Module):
 
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob,
-                 max_seq_length, attention_type):
+    def __init__(self, Config):
         super(EncoderLayer, self).__init__()
-        self.attention = MultiHeadAttention(
-            d_model=d_model, n_head=n_head, max_seq_length=max_seq_length,
-            attention_type=attention_type)
+        d_model = Config.D_MODEL
+        n_head = Config.N_HEAD
+        ffn_hidden = Config.FFN_HIDDEN
+        drop_prob = Config.DROPOUT
+        max_seq_length = Config.MAX_SEQ_LENGTH
+
+        self.attention = MultiHeadAttention(Config=Config)
         self.norm1 = LayerNorm(d_model=d_model)
         self.dropout1 = nn.Dropout(p=drop_prob)
 

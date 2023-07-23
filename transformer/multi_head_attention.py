@@ -6,17 +6,24 @@ from .additive_attention import AdditiveAttention
 from .position_aware_attention_scaling import PositionAwareAttentionScaling
 from .sim_attention import SimAttention
 from .soft_attention import SOFTAttention
+from .linformer_attention import LinformerAttention
 
 
 class MultiHeadAttention(nn.Module):
 
-    def __init__(self, d_model, n_head, max_seq_length, attention_type):
+    def __init__(self, Config):
         super(MultiHeadAttention, self).__init__()
-        self.n_head = n_head
+        self.n_head = Config.N_HEAD
         self.q_same_as_k = False
+        d_model = Config.D_MODEL
+        max_seq_length = Config.MAX_SEQ_LENGTH
 
+        if hasattr(Config, 'ATTENTION_TYPE'):
+            attention_type = Config.ATTENTION_TYPE
+        else:
+            attention_type = 'dot_product'  # default scale dot product attention
         valid_a_types = ['dot_product', 'additive', 'paas',
-                         'paas-linear', 'simal1', 'simal2', "soft"]
+                         'paas-linear', 'simal1', 'simal2', "soft", "linformer"]
         if attention_type not in valid_a_types:
             raise ValueError(
                 f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -37,6 +44,9 @@ class MultiHeadAttention(nn.Module):
         elif attention_type == 'soft':
             self.q_same_as_k = True
             self.attention = SOFTAttention()
+        elif attention_type == 'linformer':
+            self.attention = LinformerAttention(
+                max_seq_length, Config.LINFORMER_K)
 
         self.w_q = nn.Linear(d_model, d_model)
         if not self.q_same_as_k:
