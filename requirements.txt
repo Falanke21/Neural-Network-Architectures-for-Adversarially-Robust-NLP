@@ -8,3 +8,4 @@ textattack==0.3.8
 torch==2.0.0
 torchtext==0.15.1
 tqdm==4.65.0
+sentence-transformers==2.2.2
