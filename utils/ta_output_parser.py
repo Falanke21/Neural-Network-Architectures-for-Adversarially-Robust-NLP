@@ -5,7 +5,6 @@ import fileinput
 import os
 
 # Environment variables
-model_name = os.environ["TA_VICTIM_MODEL_NAME"]
 attack_recipe = os.environ["TA_ATTACK_RECIPE"]
 model_path = os.environ["TA_VICTIM_MODEL_PATH"]
 epoch_num = os.environ["TA_VICTIM_MODEL_EPOCH"]
