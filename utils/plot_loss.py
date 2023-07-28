@@ -9,9 +9,8 @@ parser.add_argument('--epoch-end', type=int, help='Epoch to end plot at')
 parser.add_argument('--output-dir', type=str, default='../models')
 args = parser.parse_args()
 
-EMBEDDING = 'custom'
-LAMBDA = '1e-5'
-TITLE_FORMAT = f'{args.model_choice}, {EMBEDDING} embedding, weight decay={LAMBDA}, full yelp review'
+LAMBDA = '1e-6'
+TITLE_FORMAT = f'{args.model_choice} paracf & soft 4 encoder layer, wd={LAMBDA}'
 
 # load loss and accuracy values
 train_losses = []
