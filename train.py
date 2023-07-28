@@ -58,8 +58,8 @@ def train(model, Config, criterion, optimizer, device, checkpoints, train_loader
                                          max_norm=Config.GRADIENT_CLIP_VALUE)
             optimizer.step()
 
-            # update tqdm with loss value every 20 batches
-            if (i+1) % Config.BATCH_SIZE == 0:
+            # update tqdm with loss value every a few batches
+            if (i+1) % (Config.BATCH_SIZE * 3) == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
                             Batch {i+1}/{len(train_loader)}, \
                             Batch Loss: {loss.item():.4f}, \
