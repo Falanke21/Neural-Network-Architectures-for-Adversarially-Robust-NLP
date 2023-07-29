@@ -41,6 +41,7 @@ class MyTransformer(nn.Module):
             self.embedding = nn.Embedding.from_pretrained(
                 glove.vectors, freeze=True)
         elif Config.WORD_EMBEDDING == 'paragramcf':
+            assert Config.D_MODEL == 300, f"D_MODEL must be 300 for Paragramcf embeddings. Got {Config.D_MODEL} instead."
             word_embeddings_file = os.path.join(
                 Config.PARAGRAMCF_DIR, "paragram.npy")
             paragramcf = torch.from_numpy(np.load(word_embeddings_file))
