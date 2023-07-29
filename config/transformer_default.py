@@ -31,7 +31,7 @@ class TransformerConfig:
     DROPOUT = 0.2
 
     # 'dot_product' or 'additive' or 'paas' or 'paas-linear' or 
-    # 'simal1' or 'simal2' or 'soft' or 'linformer'
+    # 'simal1' or 'simal2' or 'soft' or 'linformer' or 'cosformer'
     ATTENTION_TYPE = 'dot_product'
     LINFORMER_K = 64
     POSITIONAL_ENCODING = True  # Default is True

@@ -4,6 +4,7 @@ from .attentions.position_aware_attention_scaling import PositionAwareAttentionS
 from .attentions.sim_attention import SimAttention
 from .attentions.soft_attention import SOFTAttention
 from .attentions.linformer_attention import LinformerAttention
+from .attentions.cosformer_attention import CosformerAttention
 
 
 def get_attention_by_config(Config):
@@ -15,7 +16,8 @@ def get_attention_by_config(Config):
     else:
         attention_type = 'dot_product'  # default scale dot product attention
     valid_a_types = ['dot_product', 'additive', 'paas',
-                     'paas-linear', 'simal1', 'simal2', "soft", "linformer"]
+                     'paas-linear', 'simal1', 'simal2', "soft", "linformer",
+                     'cosformer']
     if attention_type not in valid_a_types:
         raise ValueError(
             f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -42,5 +44,7 @@ def get_attention_by_config(Config):
     elif attention_type == 'linformer':
         attention = LinformerAttention(
             max_seq_length, Config.LINFORMER_K)
+    elif attention_type == 'cosformer':
+        attention = CosformerAttention()
 
     return attention, q_same_as_k
