@@ -22,7 +22,7 @@ my_model.eval()
 
 my_model = ModelWithSigmoid(my_model)
 # Load the tokenizer
-tokenizer = tokenizer.MyTokenizer(
+model_tokenizer = tokenizer.MyTokenizer(
     vocab, Config.MAX_SEQ_LENGTH, remove_stopwords=False)
 # Wrap the model with Textattack's wrapper
-model = PyTorchModelWrapper(my_model, tokenizer)
+model = PyTorchModelWrapper(my_model, model_tokenizer)
