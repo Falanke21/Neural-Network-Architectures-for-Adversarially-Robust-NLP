@@ -5,15 +5,17 @@
 
 import argparse
 import csv
+import os
 
 ATTACKS = ['textbugger', 'textfooler', 'bae', 'deepwordbug', 'pwws', 'a2t']
 
 
-def calculate_overall_robustness(args):
+def calculate_overall_robustness(output_dir: str, model_name: str):
+    epoch_name = model_name.split('_')[-1].split('.')[0]  # e.g. 'epoch44'
     # first get the number of samples by counting the number of rows in
     # one of the csv files
     num_samples = 0
-    with open(f'{args.output_dir}/attack_details/textbugger.csv', 'r') as f:
+    with open(f'{output_dir}/attack_details/{epoch_name}/textbugger.csv', 'r') as f:
         reader = csv.reader(f)
         for _ in reader:
             num_samples += 1
@@ -24,7 +26,7 @@ def calculate_overall_robustness(args):
 
     # read in the results from the 6 attacks
     for i, attack in enumerate(ATTACKS):
-        csv_path = f'{args.output_dir}/attack_details/{attack}.csv'
+        csv_path = f'{output_dir}/attack_details/{epoch_name}/{attack}.csv'
         # read in the results from each attack
         # each row is one of ['s', 'f', 'k'] where s indicates success,
         # f indicates failure, and k indicates skipped
@@ -44,6 +46,9 @@ def calculate_overall_robustness(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output-dir', type=str, required=True)
+    parser.add_argument('--model-path', type=str, required=True)
     args = parser.parse_args()
-    calculate_overall_robustness(args)
+    output_dir = os.path.dirname(args.model_path)
+    model_name = args.model_path.split('/')[-1]
+
+    calculate_overall_robustness(output_dir, model_name)
