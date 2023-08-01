@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from utils.model_factory import construct_model_from_config
 from utils.tokenizer import MyTokenizer
 
+from training_scheme.adversarial import adversarial_training
 from training_scheme.standard import standard_training
 
 
@@ -26,7 +27,7 @@ class YelpReviewDataset(Dataset):
         # get indices of tokens from the text
         indices = torch.tensor(self.tokenizer(text), dtype=torch.long)
         label = self.df.loc[idx, 'label']
-        return indices, label
+        return (indices, label, text)  # also return text for adversarial training
 
 
 if __name__ == '__main__':
@@ -37,6 +38,8 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoints', action='store_true', default=False)
     parser.add_argument('--loss-values', action='store_true',
                         default=False, help='Output txt files of loss values')
+    parser.add_argument('--adversarial-training', action='store_true', default=False,
+                        help='Use adversarial training rather than standard training')
     args = parser.parse_args()
 
     # default config file to output_dir/config.py
@@ -95,7 +98,11 @@ if __name__ == '__main__':
         val_dataset, batch_size=Config.BATCH_SIZE, shuffle=False)
 
     # train model
-    standard_training(model, Config, device, args, train_loader, val_loader)
+    if args.adversarial_training:
+        adversarial_training(model, Config, device, args,
+                             train_loader, val_loader, vocab)
+    else:
+        standard_training(model, Config, device, args, train_loader, val_loader)
 
     # save model
     torch.save(model.state_dict(),

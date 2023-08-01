@@ -109,10 +109,16 @@ class MyTokenizer():
         """
         Convert an id to a word. (Textattack usage only)
         """
+        if id == self.pad_token_id:
+            return '<pad>'
         return self.id2word[id]
 
     def convert_ids_to_tokens(self, ids: list) -> list:
         """
         Convert a list of ids to a list of words. (Textattack usage only)
         """
-        return [self.convert_id_to_word(id) for id in ids]
+        result = []
+        for id in ids:
+            if id != self.pad_token_id:
+                result.append(self.convert_id_to_word(id))
+        return result

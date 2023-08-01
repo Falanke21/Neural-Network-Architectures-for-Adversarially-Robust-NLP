@@ -33,7 +33,7 @@ def standard_training(model, Config, device, args, train_loader, val_loader):
     for epoch in range(Config.NUM_EPOCHS):
         total_loss = 0
         model.train()
-        for i, (data, labels) in enumerate(tqdm(train_loader)):
+        for i, (data, labels, text) in enumerate(tqdm(train_loader)):
             data = data.to(device)
             labels = labels.unsqueeze(1).float()  # (batch_size, 1)
             labels = labels.to(device)
@@ -82,7 +82,7 @@ def standard_training(model, Config, device, args, train_loader, val_loader):
         with torch.no_grad():
             total_loss = total = TP = TN = 0
             print(f"Validation at epoch {epoch + 1}...")
-            for data, labels in tqdm(val_loader):
+            for data, labels, _ in tqdm(val_loader):
                 data = data.to(device)
                 labels = labels.unsqueeze(1).float().to(device)
                 outputs = model(data)
