@@ -41,7 +41,8 @@ def construct_model_from_config(config_path: str):
         word2index = np.load(word_list_file, allow_pickle=True)
         vocab = word2index
     else:
-        raise ValueError("Config.WORD_EMBEDDING must be one of 'custom', 'glove' and 'paragramcf'")
+        raise ValueError(
+            "Config.WORD_EMBEDDING must be one of 'custom', 'glove' and 'paragramcf'")
 
     device = torch.device(
         'cuda' if Config.USE_GPU and torch.cuda.is_available() else 'cpu')
@@ -62,3 +63,26 @@ def construct_model_from_config(config_path: str):
             vocab), output_dim=1, device=device).to(device)
 
     return model, Config, vocab, device
+
+
+class ModelWithSigmoid(torch.nn.Module):
+    """
+    Our models only return logits, so we need to wrap it with a sigmoid layer.
+    Also Textattack require the binary classification model to return the probability of 2 classes,
+    we only have 1 class, so we need to add a dummy class with probability 1 - p.
+    """
+
+    def __init__(self, model):
+        super(ModelWithSigmoid, self).__init__()
+        self.model = model
+
+    def forward(self, x):
+        logits = self.model(x)
+        output = torch.sigmoid(logits)
+        return torch.cat((1 - output, output), dim=1)
+
+    def get_input_embeddings(self):
+        """
+        Return the input embedding layer
+        """
+        return self.model.embedding
