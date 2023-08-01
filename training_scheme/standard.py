@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
+
 def standard_training(model, Config, criterion, optimizer, device, args, train_loader, val_loader):
     print("Standard Training...")
     train_losses, val_losses, val_accuracy = [], [], []
@@ -35,7 +36,7 @@ def standard_training(model, Config, criterion, optimizer, device, args, train_l
             # update tqdm with loss value every a few batches
             NUM_PRINT_PER_EPOCH = 3
             if (i+1) % (len(train_loader) // NUM_PRINT_PER_EPOCH) == 0:
-            # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
+                # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
                             Batch {i+1}/{len(train_loader)}, \
                             Batch Loss: {loss.item():.4f}, \
@@ -50,7 +51,8 @@ def standard_training(model, Config, criterion, optimizer, device, args, train_l
                 checkpoint_path = f'{args.output_dir}/checkpoints/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch+1}.pt'
                 torch.save(model.state_dict(), checkpoint_path)
             except OSError as e:
-                print(f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
+                print(
+                    f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
 
         # evaluate on validation set if necessary
         model.eval()

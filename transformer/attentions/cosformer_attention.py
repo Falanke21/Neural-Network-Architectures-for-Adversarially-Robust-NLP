@@ -36,7 +36,7 @@ class CosformerAttention(nn.Module):
         v = torch.nn.functional.relu(v)
 
         # adopting code from https://github.com/OpenNLPLab/cosFormer/blob/main/cosformer.py
-        # L = target length, S = source length, N = batch_size, 
+        # L = target length, S = source length, N = batch_size,
         # h = head, E = d_model, d = d_tensor
         bsz = batch_size
         num_heads = head
@@ -54,11 +54,13 @@ class CosformerAttention(nn.Module):
         # get index and send to cuda
         weight_index = self.get_index(m).to(q)
         # (N * h, L, 2 * d)
-        q_ = torch.cat([q * torch.sin(weight_index[:, :tgt_len, :] / m), q * torch.cos(weight_index[:, :tgt_len, :] / m)], dim=-1)
+        q_ = torch.cat([q * torch.sin(weight_index[:, :tgt_len, :] / m),
+                       q * torch.cos(weight_index[:, :tgt_len, :] / m)], dim=-1)
         # (N * h, S, 2 * d)
-        k_ = torch.cat([k * torch.sin(weight_index[:, :src_len, :] / m), k * torch.cos(weight_index[:, :src_len, :] / m)], dim=-1)
+        k_ = torch.cat([k * torch.sin(weight_index[:, :src_len, :] / m),
+                       k * torch.cos(weight_index[:, :src_len, :] / m)], dim=-1)
 
-        ## Need to improve speed!
+        # Need to improve speed!
         # (N * h, L, 2 * d) (N * h, L, d) -> (N * h, L, h, 2 * d, d)
         kv_ = torch.einsum("nld,nlm->nldm", k_, v)
         # (N * h, L, 2 * d, d) -> (N * h, L, 2 * d, d)
