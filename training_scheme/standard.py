@@ -4,8 +4,21 @@ import torch.nn as nn
 from tqdm import tqdm
 
 
-def standard_training(model, Config, criterion, optimizer, device, args, train_loader, val_loader):
+def standard_training(model, Config, device, args, train_loader, val_loader):
     print("Standard Training...")
+    # define binary cross entropy loss function and optimizer
+    criterion = nn.BCEWithLogitsLoss()
+    if hasattr(Config, 'USE_ADAMW') and Config.USE_ADAMW:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=Config.LEARNING_RATE,
+                                      betas=Config.BETAS, eps=Config.ADAM_EPSILON,
+                                      weight_decay=Config.WEIGHT_DECAY)
+        print("Using AdamW optimizer")
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=Config.LEARNING_RATE,
+                                     betas=Config.BETAS, eps=Config.ADAM_EPSILON,
+                                     weight_decay=Config.WEIGHT_DECAY)
+
+    # start training
     train_losses, val_losses, val_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
         total_loss = 0
