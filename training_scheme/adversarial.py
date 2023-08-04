@@ -37,7 +37,6 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
 
     base_file_name = f"attack-train-{epoch}"
     log_file_name = os.path.join(args.output_dir, base_file_name)
-    print("Attacking model to generate new adversarial training set...")
 
     num_train_adv_examples = len(train_dataset)
     # generate example for all of training data.
@@ -68,11 +67,7 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
     print(
         f"Attack success rate: {success_rate:.2f}% [{attack_types['SuccessfulAttackResult']} / {total_attacks}]"
     )
-    # TODO: This will produce a bug if we need to manipulate ground truth output.
 
-    # To Fix Issue #498 , We need to add the Non Output columns in one tuple to represent input columns
-    # Since adversarial_example won't be an input to the model , we will have to remove it from the input
-    # dictionary in collate_fn
     attacked_texts = []
     for r in results:
         # a successful attack
@@ -92,6 +87,29 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
 
     return attacked_texts
 
+
+def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
+    # Update wrap model because we attack the newest model every batch
+    model_wrapper = PyTorchModelWrapper(
+        ModelWithSigmoid(model), model_tokenizer)
+
+    # text is a tuple
+    text_lst = list(text)
+    # labels is a batched tensor of size (batch_size)
+    labels_lst = labels.tolist()
+    # Transform data into a list of tuples [(text, label), ...]
+    train_dataset = list(zip(text_lst, labels_lst))  # list of tuples
+    # Wrap batch data into textattack dataset
+    train_dataset = textattack.datasets.Dataset(train_dataset)
+
+    # Generate adversarial examples
+    attacked_texts = _generate_attacked_texts(
+        args, model_wrapper, train_dataset, epoch)
+
+    # need to convert attacked_texts to a tensor of size (batch_size, max_seq_length)
+    # Convert text to ids
+    data = torch.tensor(model_tokenizer(attacked_texts), dtype=torch.long)
+    return data
 
 def get_criterion():
     criterion = nn.BCEWithLogitsLoss()
@@ -120,37 +138,15 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
     # define binary cross entropy loss function and optimizer
     criterion = get_criterion()
     optimizer = get_optimizer(model, Config)
-
     train_losses, val_losses, val_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
         total_loss = 0
         for i, (_, labels, text) in enumerate(tqdm(train_loader)):
-            # Update wrap model because we attack the newest model every batch
-            model_wrapper = PyTorchModelWrapper(
-                ModelWithSigmoid(model), model_tokenizer)
-
-            # text is a tuple
-            text_lst = list(text)
-            # labels is a batched tensor of size (batch_size)
-            labels_lst = labels.tolist()
-            # Transform data into a list of tuples [(text, label), ...]
-            train_dataset = list(zip(text_lst, labels_lst))  # list of tuples
-            # Wrap batch data into textattack dataset
-            train_dataset = textattack.datasets.Dataset(train_dataset)
-
+            model.eval()
             # Generate adversarial examples
-            attacked_texts = _generate_attacked_texts(
-                args, model_wrapper, train_dataset, epoch)
-            for i in range(len(attacked_texts)):
-                if attacked_texts[i] != text_lst[i]:
-                    print(f"found different text: {attacked_texts[i]} \n vs \n {text_lst[i]}")
-
-            assert False
-            # need to convert attacked_texts to a tensor of size (batch_size, max_seq_length)
-
-            # Convert text to ids
-            data = torch.tensor(model_tokenizer(attacked_texts), dtype=torch.long)
-
+            data = text_to_adv_data(
+                model, model_tokenizer, args, text, labels, epoch)
+            # Now do the real training
             data = data.to(device)
             labels = labels.unsqueeze(1).float()  # (batch_size, 1)
             labels = labels.to(device)
@@ -200,7 +196,11 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
         with torch.no_grad():
             total_loss = total = TP = TN = 0
             print(f"Validation at epoch {epoch + 1}...")
-            for data, labels, text in tqdm(val_loader):
+            for _, labels, text in tqdm(val_loader):
+                # Generate adversarial examples
+                data = text_to_adv_data(
+                    model, model_tokenizer, args, text, labels, epoch)
+                # Now do the validation
                 data = data.to(device)
                 labels = labels.unsqueeze(1).float().to(device)
                 outputs = model(data)
