@@ -5,7 +5,6 @@ import textattack
 import torch.nn as nn
 from tqdm import tqdm
 
-from textattack import Attack
 from textattack import Attacker
 
 from textattack import AttackArgs
@@ -43,32 +42,20 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
     attack_args = AttackArgs(
         num_examples=num_train_adv_examples,
         num_examples_offset=0,
-        query_budget=None,
+        query_budget=100,
         shuffle=False,
         parallel=False,
         num_workers_per_device=1,
         disable_stdout=True,
         silent=True,
-        log_to_txt=log_file_name + ".txt",
-        log_to_csv=log_file_name + ".csv",
     )
     attack_args.attack_recipe = "textfooler"
 
     attacker = Attacker(attack, train_dataset, attack_args=attack_args)
     results = attacker.attack_dataset()
 
-    attack_types = collections.Counter(r.__class__.__name__ for r in results)
-    total_attacks = (
-        attack_types["SuccessfulAttackResult"] +
-        attack_types["FailedAttackResult"]
-    )
-    success_rate = attack_types["SuccessfulAttackResult"] / total_attacks * 100
-    print(f"Total number of attack results: {len(results)}")
-    print(
-        f"Attack success rate: {success_rate:.2f}% [{attack_types['SuccessfulAttackResult']} / {total_attacks}]"
-    )
-
     attacked_texts = []
+    # attacked_texts will be a list of attacked text
     for r in results:
         # a successful attack
         if isinstance(r, (SuccessfulAttackResult, MaximizedAttackResult)):
@@ -89,6 +76,9 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
 
 
 def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
+    """
+    Prepare and generate adversarial examples for adversarial training.
+    """
     # Update wrap model because we attack the newest model every batch
     model_wrapper = PyTorchModelWrapper(
         ModelWithSigmoid(model), model_tokenizer)
