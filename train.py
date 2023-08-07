@@ -27,13 +27,15 @@ class YelpReviewDataset(Dataset):
         # get indices of tokens from the text
         indices = torch.tensor(self.tokenizer(text), dtype=torch.long)
         label = self.df.loc[idx, 'label']
-        return (indices, label, text)  # also return text for adversarial training
+        # also return text for adversarial training
+        return (indices, label, text)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv-folder', type=str, required=True)
-    parser.add_argument('--load-trained', action='store_true', default=False)
+    parser.add_argument('--load-trained', type=str,
+                        help='Load trained model from a .pt file')
     parser.add_argument('--output-dir', type=str, default='tmp')
     parser.add_argument('--checkpoints', action='store_true', default=False)
     parser.add_argument('--loss-values', action='store_true',
@@ -57,8 +59,7 @@ if __name__ == '__main__':
     model, Config, vocab, device = construct_model_from_config(config_path)
 
     if args.load_trained:
-        model_path = f'{args.output_dir}/' + \
-            os.environ["MODEL_CHOICE"] + '_model.pt'
+        model_path = f"{args.output_dir}/{args.load_trained}"
         model.load_state_dict(torch.load(model_path))
         print(f"Loaded trained model from {model_path}!")
     # print num of parameters
@@ -102,7 +103,8 @@ if __name__ == '__main__':
         adversarial_training(model, Config, device, args,
                              train_loader, val_loader, vocab)
     else:
-        standard_training(model, Config, device, args, train_loader, val_loader)
+        standard_training(model, Config, device, args,
+                          train_loader, val_loader)
 
     # save model
     torch.save(model.state_dict(),
