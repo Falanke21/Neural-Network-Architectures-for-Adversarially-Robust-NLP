@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 
+from .gated_linear_unit import GatedLinearUnit
 from .multi_head_attention import MultiHeadAttention
 from .position_wise_feed_forward import PositionwiseFeedForward
 from .layer_norm import LayerNorm
@@ -25,8 +26,12 @@ class EncoderLayer(nn.Module):
         self.norm1 = LayerNorm(d_model=d_model)
         self.dropout1 = nn.Dropout(p=drop_prob)
 
-        self.ffn = PositionwiseFeedForward(
-            d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
+        if hasattr(Config, 'FFN_TYPE') and Config.FFN_TYPE == 'glu':
+            self.ffn = GatedLinearUnit(
+                d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
+        else:
+            self.ffn = PositionwiseFeedForward(
+                d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
         self.norm2 = LayerNorm(d_model=d_model)
         self.dropout2 = nn.Dropout(p=drop_prob)
 

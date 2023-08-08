@@ -36,3 +36,4 @@ class TransformerConfig:
     ATTENTION_TYPE = 'dot_product'
     LINFORMER_K = 64
     POSITIONAL_ENCODING = True  # Default is True
+    FFN_TYPE = 'standard'  # 'standard' or 'glu'
