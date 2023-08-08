@@ -1,6 +1,6 @@
 class TransformerConfig:
     USE_GPU = True
-    WORD_EMBEDDING = "custom"  # "custom", "glove" or "paragramcf"
+    WORD_EMBEDDING = "paragramcf"  # "custom", "glove" or "paragramcf"
     # Custom word embedding settings
     CUSTOM_VOCAB_PATH = 'data/vocab300k.pkl'
     # GloVe word embedding settings
@@ -16,7 +16,7 @@ class TransformerConfig:
     USE_ADAMW = False
     BETAS = (0.9, 0.98)  # same as original paper
     ADAM_EPSILON = 1e-9  # same as original paper
-    WEIGHT_DECAY = 1e-4  # 0 means no weight decay
+    WEIGHT_DECAY = 1e-6  # 0 means no weight decay
     GRADIENT_CLIP = True
     GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True
@@ -24,8 +24,8 @@ class TransformerConfig:
     LABEL_SMOOTHING = False  # label smoothing lead to worse results
     LABEL_SMOOTHING_EPSILON = 0.1  # 0 means no smoothing
 
-    NUM_LAYERS = 1
-    D_MODEL = 340
+    NUM_LAYERS = 4
+    D_MODEL = 300
     FFN_HIDDEN = 1024
     N_HEAD = 5
     DROPOUT = 0.2

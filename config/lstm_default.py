@@ -1,7 +1,7 @@
 class LSTMConfig:
     USE_GPU = True
 
-    WORD_EMBEDDING = "custom"  # "custom", "glove" or "paragramcf"
+    WORD_EMBEDDING = "paragramcf"  # "custom", "glove" or "paragramcf"
     # Custom word embedding settings
     CUSTOM_VOCAB_PATH = 'data/vocab300k.pkl'
     # GloVe word embedding settings
@@ -18,7 +18,7 @@ class LSTMConfig:
     USE_ADAMW = False
     BETAS = (0.9, 0.999)
     ADAM_EPSILON = 1e-8
-    WEIGHT_DECAY = 1e-4
+    WEIGHT_DECAY = 1e-5
     GRADIENT_CLIP = True
     GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True
@@ -26,7 +26,7 @@ class LSTMConfig:
     LABEL_SMOOTHING = False
     LABEL_SMOOTHING_EPSILON = 0.1  # 0 means no smoothing
 
-    LSTM_HIDDEN_SIZE = 300
+    LSTM_HIDDEN_SIZE = 200
     LSTM_EMBEDDING_SIZE = 300
-    LSTM_NUM_LAYERS = 1
+    LSTM_NUM_LAYERS = 4
     LSTM_DROUPOUT = 0
