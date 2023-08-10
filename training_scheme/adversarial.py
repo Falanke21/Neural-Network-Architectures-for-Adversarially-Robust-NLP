@@ -75,6 +75,22 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
     return attacked_texts
 
 
+def create_ta_dataset(text_lst, labels_lst, max_char_length=1500):
+    """
+    Create a textattack dataset from a list of text and labels.
+    Filter text that is too long. This prevents memory error.
+    A review with over 1500 characters is overkill.
+    """
+    for i in range(len(text_lst)):
+        if len(text_lst[i]) > max_char_length:
+            text_lst[i] = text_lst[i][:max_char_length]
+    # Transform data into a list of tuples [(text, label), ...]
+    train_dataset = list(zip(text_lst, labels_lst))  # list of tuples
+    # Wrap batch data into textattack dataset
+    train_dataset = textattack.datasets.Dataset(train_dataset)
+    return train_dataset
+
+
 def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
     """
     Prepare and generate adversarial examples for adversarial training.
@@ -83,14 +99,11 @@ def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
     model_wrapper = PyTorchModelWrapper(
         ModelWithSigmoid(model), model_tokenizer)
 
-    # text is a tuple
+    # text is a tuple of size (batch_size), each element is a review
     text_lst = list(text)
     # labels is a batched tensor of size (batch_size)
     labels_lst = labels.tolist()
-    # Transform data into a list of tuples [(text, label), ...]
-    train_dataset = list(zip(text_lst, labels_lst))  # list of tuples
-    # Wrap batch data into textattack dataset
-    train_dataset = textattack.datasets.Dataset(train_dataset)
+    train_dataset = create_ta_dataset(text_lst, labels_lst, 1500)
 
     # Generate adversarial examples
     attacked_texts = _generate_attacked_texts(
@@ -100,6 +113,7 @@ def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
     # Convert text to ids
     data = torch.tensor(model_tokenizer(attacked_texts), dtype=torch.long)
     return data
+
 
 def get_criterion():
     criterion = nn.BCEWithLogitsLoss()
@@ -161,13 +175,20 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
             optimizer.step()
 
             # update tqdm with loss value every a few batches
-            NUM_PRINT_PER_EPOCH = 3
+            NUM_PRINT_PER_EPOCH = 10
             if (i+1) % (len(train_loader) // NUM_PRINT_PER_EPOCH) == 0:
                 # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
                             Batch {i+1}/{len(train_loader)}, \
                             Batch Loss: {loss.item():.4f}, \
                             Average Loss: {total_loss / (i+1):.4f}")
+                if args.checkpoints:
+                    try:
+                        checkpoint_path = f'{args.output_dir}/checkpoints/{os.environ["MODEL_CHOICE"]}_model_batch{i+1}.pt'
+                        torch.save(model.state_dict(), checkpoint_path)
+                    except OSError as e:
+                        print(
+                            f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
         print(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
               Average Loss: {total_loss / len(train_loader):.4f}")
         # save loss for plot
