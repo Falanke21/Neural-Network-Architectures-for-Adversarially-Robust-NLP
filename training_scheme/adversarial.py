@@ -1,4 +1,3 @@
-import collections
 import os
 import torch
 import textattack
@@ -33,10 +32,6 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
     """
 
     attack = TextFoolerJin2019.build(model_wrapper)
-
-    base_file_name = f"attack-train-{epoch}"
-    log_file_name = os.path.join(args.output_dir, base_file_name)
-
     num_train_adv_examples = len(train_dataset)
     # generate example for all of training data.
     attack_args = AttackArgs(
@@ -50,6 +45,8 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
         silent=True,
     )
     attack_args.attack_recipe = "textfooler"
+    attack_args.model_cache_size = 0
+    attack_args.constraint_cache_size = 0
 
     attacker = Attacker(attack, train_dataset, attack_args=attack_args)
     results = attacker.attack_dataset()
@@ -71,7 +68,10 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
                 tuple(r.original_result.attacked_text._text_input.values())[0])
         else:
             raise ValueError(f"Unknown attack result type {type(r)}")
-
+    
+    attack.clear_cache()
+    # Delete TextAttack related objects to free up memory
+    del attacker, results, attack, model_wrapper, train_dataset, attack_args
     return attacked_texts
 
 
@@ -173,6 +173,8 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
                 nn.utils.clip_grad_norm_(model.parameters(),
                                          max_norm=Config.GRADIENT_CLIP_VALUE)
             optimizer.step()
+            del data, labels, outputs, loss
+            torch.cuda.empty_cache()
 
             # update tqdm with loss value every a few batches
             NUM_PRINT_PER_EPOCH = 10
@@ -207,11 +209,7 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
         with torch.no_grad():
             total_loss = total = TP = TN = 0
             print(f"Validation at epoch {epoch + 1}...")
-            for _, labels, text in tqdm(val_loader):
-                # Generate adversarial examples
-                data = text_to_adv_data(
-                    model, model_tokenizer, args, text, labels, epoch)
-                # Now do the validation
+            for data, labels, _ in tqdm(val_loader):
                 data = data.to(device)
                 labels = labels.unsqueeze(1).float().to(device)
                 outputs = model(data)
@@ -222,8 +220,8 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
 
                 TP += ((predicted == 1) & (labels == 1)).sum().item()
                 TN += ((predicted == 0) & (labels == 0)).sum().item()
-            print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
-            print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
+            print(f"Standard Validation Accuracy: {(TP + TN) / total:.4f}")
+            print(f"Standard Validation Loss: {total_loss / len(val_loader):.4f}")
             val_losses.append(total_loss / len(val_loader))
             val_accuracy.append((TP + TN) / total)
 
