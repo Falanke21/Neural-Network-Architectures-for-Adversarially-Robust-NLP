@@ -1,14 +1,11 @@
 import argparse
-import importlib
-import os
-import pickle
 import pandas as pd
 import torch
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from train import YelpReviewDataset
+from utils.yelp_review_dataset import YelpReviewDataset
 from utils.model_factory import construct_model_from_config
 
 if __name__ == "__main__":
@@ -18,10 +15,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     output_dir = args.model_path[:args.model_path.rfind("/")]
-    config_file = f"{output_dir}/config.py"
+    config_path = f"{output_dir}/config.py"
     print(f"Loading model from {args.model_path}")
 
-    model, Config, vocab, device = construct_model_from_config(config_file)
+    model, Config, vocab, device = construct_model_from_config(config_path)
     model.load_state_dict(torch.load(args.model_path))
     model.eval()
 
@@ -43,7 +40,7 @@ if __name__ == "__main__":
         total_loss = 0
         TP, FP, TN, FN = 0, 0, 0, 0
         print("Testing...")
-        for data, labels in tqdm(test_loader):
+        for data, labels, _ in tqdm(test_loader):
             data = data.to(device)
             labels = labels.unsqueeze(1).float().to(device)
             outputs = model(data)

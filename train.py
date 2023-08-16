@@ -2,33 +2,13 @@ import argparse
 import os
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 from utils.model_factory import construct_model_from_config
-from utils.tokenizer import MyTokenizer
+from utils.yelp_review_dataset import YelpReviewDataset
 
 from training_scheme.adversarial import adversarial_training
 from training_scheme.standard import standard_training
-
-
-class YelpReviewDataset(Dataset):
-    def __init__(self, df, vocab, max_seq_length):
-        self.df = df
-        self.vocab = vocab
-        self.seq_length = max_seq_length
-        self.tokenizer = MyTokenizer(
-            vocab, max_seq_length, remove_stopwords=False)
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        text = self.df.loc[idx, 'text']  # text is a string
-        # get indices of tokens from the text
-        indices = torch.tensor(self.tokenizer(text), dtype=torch.long)
-        label = self.df.loc[idx, 'label']
-        # also return text for adversarial training
-        return (indices, label, text)
 
 
 if __name__ == '__main__':
