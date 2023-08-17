@@ -16,7 +16,7 @@ class TransformerConfig:
     USE_ADAMW = False
     BETAS = (0.9, 0.98)  # same as original paper
     ADAM_EPSILON = 1e-9  # same as original paper
-    WEIGHT_DECAY = 1e-6  # 0 means no weight decay
+    WEIGHT_DECAY = 1e-7  # 0 means no weight decay
     GRADIENT_CLIP = True
     GRADIENT_CLIP_VALUE = 1
     UPSAMPLE_NEGATIVE = True
@@ -32,8 +32,9 @@ class TransformerConfig:
 
     # 'dot_product' or 'additive' or 'paas' or 'paas-linear' or 
     # 'simal1' or 'simal2' or 'soft' or 'linformer' or 'cosformer'
-    # or 'norm-layer' or 'norm-srms'
+    # or 'norm-layer' or 'norm-srms' or 'diag'
     ATTENTION_TYPE = 'dot_product'
     LINFORMER_K = 64
+    DIAG_BLOCK_SIZE = 15
     POSITIONAL_ENCODING = True  # Default is True
     FFN_TYPE = 'standard'  # 'standard' or 'glu'

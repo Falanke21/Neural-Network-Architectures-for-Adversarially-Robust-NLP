@@ -6,6 +6,8 @@ from .attentions.soft_attention import SOFTAttention
 from .attentions.linformer_attention import LinformerAttention
 from .attentions.cosformer_attention import CosformerAttention
 from .attentions.norm_attention import NormAttention
+from .attentions.experiment import Experiment
+from .attentions.diag_attention import DiagAttention
 
 
 def get_attention_by_config(Config):
@@ -18,7 +20,8 @@ def get_attention_by_config(Config):
         attention_type = 'dot_product'  # default scale dot product attention
     valid_a_types = ['dot_product', 'additive', 'paas',
                      'paas-linear', 'simal1', 'simal2', "soft", "linformer",
-                     'cosformer', 'norm-layer', 'norm-srms']
+                     'cosformer', 'norm-layer', 'norm-srms', 'experiment',
+                     'diag']
     if attention_type not in valid_a_types:
         raise ValueError(
             f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -51,5 +54,10 @@ def get_attention_by_config(Config):
         attention = NormAttention(d_tensor, normalization="layer_norm")
     elif attention_type == 'norm-srms':
         attention = NormAttention(d_tensor, normalization="srms")
+    elif attention_type == 'diag':
+        # TODO: make only first half layers use diag attention
+        attention = DiagAttention(Config.DIAG_BLOCK_SIZE)
+    elif attention_type == 'experiment':
+        attention = Experiment(d_tensor)
 
     return attention, q_same_as_k
