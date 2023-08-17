@@ -1,14 +1,14 @@
 import torch
 from torch.utils.data import Dataset
 
-from utils.tokenizer import MyTokenizer
+from project.utils import tokenizer
 
 class YelpReviewDataset(Dataset):
     def __init__(self, df, vocab, max_seq_length):
         self.df = df
         self.vocab = vocab
         self.seq_length = max_seq_length
-        self.tokenizer = MyTokenizer(
+        self.tokenizer = tokenizer.MyTokenizer(
             vocab, max_seq_length, remove_stopwords=False)
 
     def __len__(self):
