@@ -28,6 +28,7 @@ class MyTransformer(nn.Module):
         self.max_len = Config.MAX_SEQ_LENGTH
         self.n_layers = Config.NUM_LAYERS
 
+        # Embedding layer
         if Config.WORD_EMBEDDING == 'custom':
             self.embedding = nn.Embedding(
                 vocab_size, self.d_model, padding_idx=0)
@@ -53,9 +54,22 @@ class MyTransformer(nn.Module):
             self.positional_encoding = PositionalEncoding(
                 self.d_model, self.max_len, device)
         self.drop_out = nn.Dropout(p=self.drop_prob)
+
         # Support multiple layers
-        self.layers = nn.ModuleList(
-            [EncoderLayer(Config) for _ in range(self.n_layers)])
+        if hasattr(Config, 'ATTENTION_TYPE') and Config.ATTENTION_TYPE == 'transnormer':
+            # in transnormer, the first half layers use diag attention
+            # and the second half layers use norm attention
+            self.layers = nn.ModuleList()
+            half_point = self.n_layers // 2
+            for i in range(self.n_layers):
+                if i < half_point:
+                    Config.ATTENTION_TYPE = 'diag'
+                else:
+                    Config.ATTENTION_TYPE = 'norm-layer'
+                self.layers.append(EncoderLayer(Config))
+        else:
+            self.layers = nn.ModuleList(
+                [EncoderLayer(Config) for _ in range(self.n_layers)])
         self.fc = nn.Linear(self.d_model, output_dim)
 
     def forward(self, x):
