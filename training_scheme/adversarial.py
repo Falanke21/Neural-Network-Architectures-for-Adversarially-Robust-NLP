@@ -20,7 +20,7 @@ from utils.model_factory import ModelWithSigmoid
 from project.utils import tokenizer
 
 
-def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
+def _generate_attacked_texts(model_wrapper, train_dataset):
     """
     Adapted from https://github.com/Falanke21/TextAttack/blob/master/textattack/trainer.py
     Generate adversarial examples using attacker.
@@ -51,6 +51,7 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
     attacker = Attacker(attack, train_dataset, attack_args=attack_args)
     results = attacker.attack_dataset()
 
+    # atacked_texts is a list which might create reference which leads to memory leak
     attacked_texts = []
     # attacked_texts will be a list of attacked text
     for r in results:
@@ -68,7 +69,7 @@ def _generate_attacked_texts(args, model_wrapper, train_dataset, epoch):
                 tuple(r.original_result.attacked_text._text_input.values())[0])
         else:
             raise ValueError(f"Unknown attack result type {type(r)}")
-    
+
     attack.clear_cache()
     # Delete TextAttack related objects to free up memory
     del attacker, results, attack, model_wrapper, train_dataset, attack_args
@@ -91,7 +92,7 @@ def create_ta_dataset(text_lst, labels_lst, max_char_length=1500):
     return train_dataset
 
 
-def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
+def text_to_adv_data(model, model_tokenizer, text, labels):
     """
     Prepare and generate adversarial examples for adversarial training.
     """
@@ -106,12 +107,14 @@ def text_to_adv_data(model, model_tokenizer, args, text, labels, epoch):
     train_dataset = create_ta_dataset(text_lst, labels_lst, 1500)
 
     # Generate adversarial examples
-    attacked_texts = _generate_attacked_texts(
-        args, model_wrapper, train_dataset, epoch)
+    with torch.no_grad():
+        attacked_texts = _generate_attacked_texts(
+            model_wrapper, train_dataset)
 
     # need to convert attacked_texts to a tensor of size (batch_size, max_seq_length)
     # Convert text to ids
     data = torch.tensor(model_tokenizer(attacked_texts), dtype=torch.long)
+    del attacked_texts
     return data
 
 
@@ -142,14 +145,12 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
     # define binary cross entropy loss function and optimizer
     criterion = get_criterion()
     optimizer = get_optimizer(model, Config)
-    train_losses, val_losses, val_accuracy = [], [], []
     for epoch in range(Config.NUM_EPOCHS):
-        total_loss = 0
         for i, (_, labels, text) in enumerate(tqdm(train_loader)):
             model.eval()
             # Generate adversarial examples
             data = text_to_adv_data(
-                model, model_tokenizer, args, text, labels, epoch)
+                model, model_tokenizer, text, labels)
             # Now do the real training
             data = data.to(device)
             labels = labels.unsqueeze(1).float()  # (batch_size, 1)
@@ -164,7 +165,6 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
             # forward
             outputs = model(data)
             loss = criterion(outputs, labels)
-            total_loss += loss.item()
             # backward
             optimizer.zero_grad()
             loss.backward()
@@ -173,17 +173,15 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
                 nn.utils.clip_grad_norm_(model.parameters(),
                                          max_norm=Config.GRADIENT_CLIP_VALUE)
             optimizer.step()
-            del data, labels, outputs, loss
+            del data, labels, outputs, _
             torch.cuda.empty_cache()
 
-            # update tqdm with loss value every a few batches
-            NUM_PRINT_PER_EPOCH = 10
-            if (i+1) % (len(train_loader) // NUM_PRINT_PER_EPOCH) == 0:
+            # update tqdm with loss value every 100 batches
+            if (i+1) % 100 == 0:
                 # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
                             Batch {i+1}/{len(train_loader)}, \
-                            Batch Loss: {loss.item():.4f}, \
-                            Average Loss: {total_loss / (i+1):.4f}")
+                            Batch Loss: {loss.item():.4f}")
                 if args.checkpoints:
                     try:
                         checkpoint_path = f'{args.output_dir}/checkpoints/{os.environ["MODEL_CHOICE"]}_model_batch{i+1}.pt'
@@ -191,45 +189,3 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
                     except OSError as e:
                         print(
                             f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
-        print(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
-              Average Loss: {total_loss / len(train_loader):.4f}")
-        # save loss for plot
-        train_losses.append(total_loss / len(train_loader))
-        # save checkpoint
-        if args.checkpoints:
-            try:
-                checkpoint_path = f'{args.output_dir}/checkpoints/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch+1}.pt'
-                torch.save(model.state_dict(), checkpoint_path)
-            except OSError as e:
-                print(
-                    f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
-
-        # evaluate on validation set if necessary
-        model.eval()
-        with torch.no_grad():
-            total_loss = total = TP = TN = 0
-            print(f"Validation at epoch {epoch + 1}...")
-            for data, labels, _ in tqdm(val_loader):
-                data = data.to(device)
-                labels = labels.unsqueeze(1).float().to(device)
-                outputs = model(data)
-                loss = criterion(outputs, labels)
-                total_loss += loss.item()
-                predicted = torch.round(torch.sigmoid(outputs))
-                total += labels.size(0)
-
-                TP += ((predicted == 1) & (labels == 1)).sum().item()
-                TN += ((predicted == 0) & (labels == 0)).sum().item()
-            print(f"Standard Validation Accuracy: {(TP + TN) / total:.4f}")
-            print(f"Standard Validation Loss: {total_loss / len(val_loader):.4f}")
-            val_losses.append(total_loss / len(val_loader))
-            val_accuracy.append((TP + TN) / total)
-
-        # plot loss and accuracy values to file
-        if args.loss_values:
-            with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_train_losses.txt', 'a') as f:
-                f.write(f'{train_losses[-1]}\n')
-            with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_losses.txt', 'a') as f:
-                f.write(f'{val_losses[-1]}\n')
-            with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_accuracy.txt', 'a') as f:
-                f.write(f'{val_accuracy[-1]}\n')
