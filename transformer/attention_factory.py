@@ -21,8 +21,8 @@ def get_attention_by_config(Config):
         attention_type = 'dot_product'  # default scale dot product attention
     valid_a_types = ['dot_product', 'additive', 'paas',
                      'paas-linear', 'simal1', 'simal2', "soft", "linformer",
-                     'cosformer', 'norm-layer', 'norm-srms', 'experiment',
-                     'diag', 'local']
+                     'cosformer', 'norm', 'experiment',
+                     'diag', 'local', 'transnormer']
     if attention_type not in valid_a_types:
         raise ValueError(
             f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -51,10 +51,8 @@ def get_attention_by_config(Config):
             max_seq_length, Config.LINFORMER_K)
     elif attention_type == 'cosformer':
         attention = CosformerAttention()
-    elif attention_type == 'norm-layer':
-        attention = NormAttention(d_tensor, normalization="layer_norm")
-    elif attention_type == 'norm-srms':
-        attention = NormAttention(d_tensor, normalization="srms")
+    elif attention_type == 'norm':
+        attention = NormAttention(d_tensor, normalization=Config.NORM_ATTENTION_TYPE)
     elif attention_type == 'diag':
         # TODO: make only first half layers use diag attention
         attention = DiagAttention(Config.DIAG_BLOCK_SIZE)

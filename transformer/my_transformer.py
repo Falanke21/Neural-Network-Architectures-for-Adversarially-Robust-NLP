@@ -65,7 +65,7 @@ class MyTransformer(nn.Module):
                 if i < half_point:
                     Config.ATTENTION_TYPE = 'diag'
                 else:
-                    Config.ATTENTION_TYPE = 'norm-layer'
+                    Config.ATTENTION_TYPE = 'norm'
                 self.layers.append(EncoderLayer(Config))
         else:
             self.layers = nn.ModuleList(

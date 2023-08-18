@@ -18,11 +18,11 @@ class NormAttention(nn.Module):
     Value : every sentence same with Key (encoder)
     """
 
-    def __init__(self, d_tensor, normalization="layer_norm"):
+    def __init__(self, d_tensor, normalization="layer-norm"):
         super(NormAttention, self).__init__()
-        assert normalization in ["layer_norm", "srms", "rms"]
+        assert normalization in ["layer-norm", "srms", "rms"]
         self.normalization = normalization
-        if normalization == "layer_norm":
+        if normalization == "layer-norm":
             self.layer_norm = LayerNorm(d_tensor)
         print(f"NormAttention with {normalization}")
 
@@ -46,7 +46,7 @@ class NormAttention(nn.Module):
         result = score @ v  # [batch_size, head, length, d_tensor]
 
         # 4. apply normalization
-        if self.normalization == "layer_norm":
+        if self.normalization == "layer-norm":
             result = self.layer_norm(result)
         # srms formula: x / ( ||x||2 / sqrt(d_tensor) ), l2 norm is applied to the length dimension
         elif self.normalization == "srms":

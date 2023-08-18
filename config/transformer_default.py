@@ -32,10 +32,11 @@ class TransformerConfig:
 
     # 'dot_product' or 'additive' or 'paas' or 'paas-linear' or 
     # 'simal1' or 'simal2' or 'soft' or 'linformer' or 'cosformer'
-    # or 'norm-layer' or 'norm-srms' or 'diag' or 'local' or 'experiment'
+    # or 'norm' or 'diag' or 'local' or 'experiment'
     # or 'transnormer'
     ATTENTION_TYPE = 'dot_product'
     LINFORMER_K = 64
     DIAG_BLOCK_SIZE = 15
+    NORM_ATTENTION_TYPE = 'layer-norm' # 'layer-norm' or 'srms'
     POSITIONAL_ENCODING = True  # Default is True
     FFN_TYPE = 'standard'  # 'standard' or 'glu'
