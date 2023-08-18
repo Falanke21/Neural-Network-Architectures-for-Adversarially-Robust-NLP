@@ -145,6 +145,7 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
     # define binary cross entropy loss function and optimizer
     criterion = get_criterion()
     optimizer = get_optimizer(model, Config)
+    val_losses, val_accuracy = [], []
     for epoch in range(Config.NUM_EPOCHS):
         for i, (_, labels, text) in enumerate(tqdm(train_loader)):
             model.eval()
@@ -189,3 +190,32 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
                     except OSError as e:
                         print(
                             f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
+
+                # evaluate on validation set every 100 batches
+                model.eval()
+                with torch.no_grad():
+                    total_loss = total = TP = TN = 0
+                    print(f"Validation at epoch {epoch + 1}...")
+                    for data, labels, _ in tqdm(val_loader):
+                        data = data.to(device)
+                        labels = labels.unsqueeze(1).float().to(device)
+                        outputs = model(data)
+                        loss = criterion(outputs, labels)
+                        total_loss += loss.item()
+                        predicted = torch.round(torch.sigmoid(outputs))
+                        total += labels.size(0)
+
+                        TP += ((predicted == 1) & (labels == 1)).sum().item()
+                        TN += ((predicted == 0) & (labels == 0)).sum().item()
+                    del data, labels, outputs, _
+                    print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
+                    print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
+                    val_losses.append(total_loss / len(val_loader))
+                    val_accuracy.append((TP + TN) / total)
+
+                # plot loss and accuracy values to file
+                if args.loss_values:
+                    with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_losses.txt', 'a') as f:
+                        f.write(f'{val_losses[-1]}\n')
+                    with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_accuracy.txt', 'a') as f:
+                        f.write(f'{val_accuracy[-1]}\n')
