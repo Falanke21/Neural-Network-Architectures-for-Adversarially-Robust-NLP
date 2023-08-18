@@ -94,8 +94,9 @@ if __name__ == '__main__':
         standard_training(model, Config, device, args,
                           train_loader, val_loader)
 
-    # save model
-    torch.save(model.state_dict(),
-               f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
-    print(
-        f'Model saved to {args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
+    # save model if not checkpointing
+    if not args.checkpoints:
+        torch.save(model.state_dict(),
+                f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
+        print(
+            f'Model saved to {args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
