@@ -12,13 +12,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv-folder', type=str, required=True)
     parser.add_argument('--model-path', type=str, required=True)
+    parser.add_argument('--config-file', type=str, required=True)
     args = parser.parse_args()
 
     output_dir = args.model_path[:args.model_path.rfind("/")]
-    config_path = f"{output_dir}/config.py"
     print(f"Loading model from {args.model_path}")
 
-    model, Config, vocab, device = construct_model_from_config(config_path)
+    model, Config, vocab, device = construct_model_from_config(args.config_file)
     model.load_state_dict(torch.load(args.model_path))
     model.eval()
 

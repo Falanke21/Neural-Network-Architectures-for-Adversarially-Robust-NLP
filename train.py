@@ -39,9 +39,8 @@ if __name__ == '__main__':
     model, Config, vocab, device = construct_model_from_config(config_path)
 
     if args.load_trained:
-        model_path = f"{args.output_dir}/{args.load_trained}"
-        model.load_state_dict(torch.load(model_path))
-        print(f"Loaded trained model from {model_path}!")
+        model.load_state_dict(torch.load(args.load_trained))
+        print(f"Loaded trained model from {args.load_trained}!")
     # print num of parameters
     print(
         f'Number of trainable parameters: \
