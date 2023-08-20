@@ -146,76 +146,71 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
     criterion = get_criterion()
     optimizer = get_optimizer(model, Config)
     val_losses, val_accuracy = [], []
-    for epoch in range(Config.NUM_EPOCHS):
-        for i, (_, labels, text) in enumerate(tqdm(train_loader)):
-            model.eval()
-            # Generate adversarial examples
-            data = text_to_adv_data(
-                model, model_tokenizer, text, labels)
-            # Now do the real training
+    for i, (_, labels, text) in enumerate(tqdm(train_loader)):
+        model.eval()
+        # Generate adversarial examples
+        data = text_to_adv_data(
+            model, model_tokenizer, text, labels)
+        # Now do the real training
+        data = data.to(device)
+        labels = labels.unsqueeze(1).float()  # (batch_size, 1)
+        labels = labels.to(device)
+
+        # Apply label smoothing by changing labels from 0, 1 to 0.1, 0.9
+        if Config.LABEL_SMOOTHING:
+            labels = (1 - Config.LABEL_SMOOTHING_EPSILON) * labels + \
+                Config.LABEL_SMOOTHING_EPSILON * (1 - labels)
+
+        model.train()
+        # forward
+        outputs = model(data)
+        loss = criterion(outputs, labels)
+        # backward
+        optimizer.zero_grad()
+        loss.backward()
+        if Config.GRADIENT_CLIP:
+            # clip gradient norm
+            nn.utils.clip_grad_norm_(model.parameters(),
+                                        max_norm=Config.GRADIENT_CLIP_VALUE)
+        optimizer.step()
+        del data, labels, outputs, _
+        torch.cuda.empty_cache()
+
+        # update tqdm with loss value every 100 batches
+        if (i+1) % 100 == 0:
+            # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
+            tqdm.write(f"Batch {i+1}/{len(train_loader)}, \
+                        Batch Loss: {loss.item():.4f}")
+            
+    # save model to at_model.pt
+    print(f"Saving model to {args.output_dir}/at_model.pt")
+    torch.save(model.state_dict(), f'{args.output_dir}/at_model.pt')
+
+    # evaluate on validation set every 100 batches
+    model.eval()
+    with torch.no_grad():
+        total_loss = total = TP = TN = 0
+        print(f"Validation...")
+        for data, labels, _ in tqdm(val_loader):
             data = data.to(device)
-            labels = labels.unsqueeze(1).float()  # (batch_size, 1)
-            labels = labels.to(device)
-
-            # Apply label smoothing by changing labels from 0, 1 to 0.1, 0.9
-            if Config.LABEL_SMOOTHING:
-                labels = (1 - Config.LABEL_SMOOTHING_EPSILON) * labels + \
-                    Config.LABEL_SMOOTHING_EPSILON * (1 - labels)
-
-            model.train()
-            # forward
+            labels = labels.unsqueeze(1).float().to(device)
             outputs = model(data)
             loss = criterion(outputs, labels)
-            # backward
-            optimizer.zero_grad()
-            loss.backward()
-            if Config.GRADIENT_CLIP:
-                # clip gradient norm
-                nn.utils.clip_grad_norm_(model.parameters(),
-                                         max_norm=Config.GRADIENT_CLIP_VALUE)
-            optimizer.step()
-            del data, labels, outputs, _
-            torch.cuda.empty_cache()
+            total_loss += loss.item()
+            predicted = torch.round(torch.sigmoid(outputs))
+            total += labels.size(0)
 
-            # update tqdm with loss value every 100 batches
-            if (i+1) % 100 == 0:
-                # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
-                tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
-                            Batch {i+1}/{len(train_loader)}, \
-                            Batch Loss: {loss.item():.4f}")
-                if args.checkpoints:
-                    try:
-                        checkpoint_path = f'{args.output_dir}/checkpoints/{os.environ["MODEL_CHOICE"]}_model_batch{i+1}.pt'
-                        torch.save(model.state_dict(), checkpoint_path)
-                    except OSError as e:
-                        print(
-                            f"Could not save checkpoint at epoch {epoch+1}, error: {e}")
+            TP += ((predicted == 1) & (labels == 1)).sum().item()
+            TN += ((predicted == 0) & (labels == 0)).sum().item()
+        del data, labels, outputs, _
+        print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
+        print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
+        val_losses.append(total_loss / len(val_loader))
+        val_accuracy.append((TP + TN) / total)
 
-                # evaluate on validation set every 100 batches
-                model.eval()
-                with torch.no_grad():
-                    total_loss = total = TP = TN = 0
-                    print(f"Validation at epoch {epoch + 1}...")
-                    for data, labels, _ in tqdm(val_loader):
-                        data = data.to(device)
-                        labels = labels.unsqueeze(1).float().to(device)
-                        outputs = model(data)
-                        loss = criterion(outputs, labels)
-                        total_loss += loss.item()
-                        predicted = torch.round(torch.sigmoid(outputs))
-                        total += labels.size(0)
-
-                        TP += ((predicted == 1) & (labels == 1)).sum().item()
-                        TN += ((predicted == 0) & (labels == 0)).sum().item()
-                    del data, labels, outputs, _
-                    print(f"Validation Accuracy: {(TP + TN) / total:.4f}")
-                    print(f"Validation Loss: {total_loss / len(val_loader):.4f}")
-                    val_losses.append(total_loss / len(val_loader))
-                    val_accuracy.append((TP + TN) / total)
-
-                # plot loss and accuracy values to file
-                if args.loss_values:
-                    with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_losses.txt', 'a') as f:
-                        f.write(f'{val_losses[-1]}\n')
-                    with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_accuracy.txt', 'a') as f:
-                        f.write(f'{val_accuracy[-1]}\n')
+    # plot loss and accuracy values to file
+    if args.loss_values:
+        with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_losses.txt', 'a') as f:
+            f.write(f'{val_losses[-1]}\n')
+        with open(f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_accuracy.txt', 'a') as f:
+            f.write(f'{val_accuracy[-1]}\n')

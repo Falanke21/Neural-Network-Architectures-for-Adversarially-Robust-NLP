@@ -59,13 +59,6 @@ if __name__ == '__main__':
             n=int(len(train_data_neg) * Config.UPSAMPLE_RATIO), replace=True)
         train_data = pd.concat([train_data_pos, train_data_neg_upsampled])
         print(f"Upsampled negative reviews by {Config.UPSAMPLE_RATIO}x")
-
-    # if adversarial training, we only use 50% of the training data
-    ADV_TRAIN_RATIO = 0.5
-    if args.adversarial_training:
-        train_data = train_data.sample(
-            n=int(len(train_data) * ADV_TRAIN_RATIO), replace=True)
-        print(f"Using {ADV_TRAIN_RATIO * 100}% of training data for adversarial training")
     
     # Reset dataframe index so that we can use df.loc[idx, 'text']
     train_data = train_data.reset_index(drop=True)
@@ -92,10 +85,4 @@ if __name__ == '__main__':
     else:
         standard_training(model, Config, device, args,
                           train_loader, val_loader)
-
-    # save model if not checkpointing
-    if not args.checkpoints:
-        torch.save(model.state_dict(),
-                f'{args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
-        print(
-            f'Model saved to {args.output_dir}/{os.environ["MODEL_CHOICE"]}_model.pt')
+    print(f"Training complete with output directory {args.output_dir}")
