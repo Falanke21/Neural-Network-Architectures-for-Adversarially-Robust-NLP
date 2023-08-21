@@ -97,6 +97,39 @@ def create_ta_dataset(text_lst, labels_lst, max_char_length=1500):
     return train_dataset
 
 
+def attack_and_save(train_dataset, output_csv_path):
+    # Generate adversarial examples
+    model_tokenizer = MyTokenizer(
+        vocab, Config.MAX_SEQ_LENGTH, remove_stopwords=False)
+    model_wrapper = PyTorchModelWrapper(
+        ModelWithSigmoid(model), model_tokenizer)
+
+    print(f"Saving adversarial examples to {output_csv_path}...")
+    # write header to csv file if it doesn't exist
+    if not os.path.exists(output_csv_path):
+        df = pd.DataFrame({'text': [], 'label': []})
+        df.to_csv(output_csv_path, mode='a', header=True, index=False)
+    # text_to_adv_data
+    for i, (_, labels, text) in enumerate(tqdm(train_loader)):
+        # text is a tuple of size (batch_size), each element is a review
+        text_lst = list(text)
+        # labels is a batched tensor of size (batch_size)
+        labels_lst = labels.tolist()
+        train_dataset = create_ta_dataset(text_lst, labels_lst, 1500)
+
+        # Generate adversarial examples
+        with torch.no_grad():
+            attacked_texts = _generate_attacked_texts(
+                model_wrapper, train_dataset)
+
+        # Save and append to a csv file in the same folder as the trained model,
+        # with the same format as the original csv file
+        # Save to a csv file
+        df = pd.DataFrame({'text': attacked_texts, 'label': labels_lst})
+        df.to_csv(output_csv_path, mode='a', header=False, index=False)
+        del attacked_texts
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv-folder', type=str, required=True)
@@ -109,6 +142,9 @@ if __name__ == '__main__':
     parser.add_argument('--data-proportion', type=float, default=0.5,
                         help='Proportion of training data to use for \
                               adversarial training')
+    parser.add_argument('--concat-with-original', action='store_true',
+                        help='Concatenate original training data with \
+                              adversarial examples in output csv file')
     args = parser.parse_args()
 
     # default config file to output_dir/config.py
@@ -129,7 +165,8 @@ if __name__ == '__main__':
     train_data = train_data.sample(frac=args.data_proportion)
     # reset index
     train_data = train_data.reset_index(drop=True)
-    print(f"Using {args.data_proportion} of training data for adversarial training")
+    print(
+        f"Using {args.data_proportion} of training data for adversarial training")
 
     train_dataset = YelpReviewDataset(
         train_data, vocab, Config.MAX_SEQ_LENGTH)
@@ -137,34 +174,26 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         train_dataset, batch_size=args.attack_batch_size, shuffle=False)
 
-    # Generate adversarial examples
-    model_tokenizer = MyTokenizer(
-        vocab, Config.MAX_SEQ_LENGTH, remove_stopwords=False)
-    model_wrapper = PyTorchModelWrapper(
-        ModelWithSigmoid(model), model_tokenizer)
+    new_data_dir = f'{output_dir}/augment_csv_concat' if args.concat_with_original \
+        else f'{output_dir}/augment_csv'
+    os.makedirs(new_data_dir, exist_ok=True)
+    # copy original test.csv and val.csv to new_data_dir
+    print(f"Copying original test.csv and val.csv to {output_dir}...")
+    os.system(f"cp {args.csv_folder}/test.csv {new_data_dir}")
+    os.system(f"cp {args.csv_folder}/val.csv {new_data_dir}")
+    output_csv_path = f'{new_data_dir}/train.csv'
+    attack_and_save(train_dataset, output_csv_path)
 
-    output_csv_path = f'{output_dir}/train_adv.csv'
-    print(f"Saving adversarial examples to {output_csv_path}...")
-    # write header to csv file if it doesn't exist
-    if not os.path.exists(output_csv_path):
-        df = pd.DataFrame({'text': [], 'label': []})
-        df.to_csv(output_csv_path, mode='a', header=True, index=False)
-    # text_to_adv_data
-    for i, (_, labels, text) in enumerate(tqdm(train_loader)):
-        # text is a tuple of size (batch_size), each element is a review
-        text_lst = list(text)
-        # labels is a batched tensor of size (batch_size)
-        labels_lst = labels.tolist()
-        train_dataset = create_ta_dataset(text_lst, labels_lst, 1500)
-
-        # Generate adversarial examples
-        with torch.no_grad():
-            attacked_texts = _generate_attacked_texts(
-                model_wrapper, train_dataset)
-            
-        # Save and append to a csv file in the same folder as the trained model,
-        # with the same format as the original csv file
-        # Save to a csv file
-        df = pd.DataFrame({'text': attacked_texts, 'label': labels_lst})
-        df.to_csv(output_csv_path, mode='a', header=False, index=False)
-        del attacked_texts
+    if args.concat_with_original:
+        # Concatenate original training data with adversarial examples
+        # in output csv file
+        # Load original training data
+        original_train_data = pd.read_csv(f'{args.csv_folder}/train.csv')
+        # Load adversarial examples
+        adv_train_data = pd.read_csv(output_csv_path)
+        # Concatenate
+        train_data = pd.concat([original_train_data, adv_train_data])
+        # Save to csv file
+        train_data.to_csv(output_csv_path, index=False)
+        print(
+            f"Concatenated original training data with adversarial examples in {output_csv_path}")
