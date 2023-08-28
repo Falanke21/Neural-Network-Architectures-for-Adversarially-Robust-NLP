@@ -49,6 +49,7 @@ if __name__ == '__main__':
     model.to(device)
 
     # load data
+    print(f"Loading data from {args.csv_folder}")
     train_data = pd.read_csv(f'{args.csv_folder}/train.csv')
     val_data = pd.read_csv(f'{args.csv_folder}/val.csv')
     if Config.UPSAMPLE_NEGATIVE:
