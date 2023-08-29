@@ -9,6 +9,7 @@ from .attentions.norm_attention import NormAttention
 from .attentions.experiment import Experiment
 from .attentions.diag_attention import DiagAttention
 from .attentions.local_attention import LocalAttention
+from .attentions.robust import RobustAttention
 
 
 def get_attention_by_config(Config):
@@ -22,7 +23,7 @@ def get_attention_by_config(Config):
     valid_a_types = ['dot_product', 'additive', 'paas',
                      'paas-linear', 'simal1', 'simal2', "soft", "linformer",
                      'cosformer', 'norm', 'experiment',
-                     'diag', 'local', 'transnormer']
+                     'diag', 'local', 'transnormer', 'robust']
     if attention_type not in valid_a_types:
         raise ValueError(
             f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -60,5 +61,7 @@ def get_attention_by_config(Config):
         attention = Experiment(d_tensor)
     elif attention_type == 'local':
         attention = LocalAttention(Config.LOCAL_ATTENTION_R)
+    elif attention_type == 'robust':
+        attention = RobustAttention()
 
     return attention, q_same_as_k
