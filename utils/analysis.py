@@ -14,7 +14,11 @@ def analyse_csv(args):
     # print first row
     print(f"First row: {df.iloc[0]}")
     print(f"First label: {df.iloc[0]['label']}")
-    print(f"Type of label: {type(df.iloc[0]['label'])}")
+    print(f"Type of label: {type(df.iloc[0]['label'])}")  # type is str not int, for example '1'
+    # there are some rows with label = 'label', we need to remove them
+    df = df[df['label'] != 'label']
+    # convert label to int
+    df['label'] = df['label'].astype(int)
 
     # print total number of rows
     print(f"Total number of rows: {len(df)}")
@@ -23,12 +27,29 @@ def analyse_csv(args):
     print(f"Number of positive reviews: {len(df[df['label'] == 1])}")
     print(f"Number of negative reviews: {len(df[df['label'] == 0])}")
 
+    # plot pie chart of positive vs negative reviews
+    labels = 'Positive', 'Negative'
+    sizes = [len(df[df['label'] == 1]), len(df[df['label'] == 0])]
+    fig1, ax1 = plt.subplots()
+    # Set font properties for labels
+    label_props = {'fontsize': 12}
+    wedges, texts, autotexts = ax1.pie(sizes, labels=labels, autopct='%1.1f%%',
+                                    shadow=False, startangle=90, textprops=label_props)
+    # Set font properties for autopct
+    autopct_props = {'fontsize': 12}
+    for autotext in autotexts:
+        autotext.set_fontsize(12)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.title('Proportion of Positive vs Negative in Yelp Reviews', fontsize=15)
+    plt.savefig('pie_chart.png', bbox_inches='tight')
+    plt.clf()
+
     if args.plot_len_hist:
         tokenizer = MyTokenizer(None, 150, remove_stopwords=False)
         # get the length of tokenized all text, show progress bar with tqdm
         for i in tqdm(range(len(df))):
             df.loc[i, 'num_tokens'] = len(
-                tokenizer.tokenize(df.loc[i, 'text']))
+                tokenizer.tokenize(df.iloc[i]['text']))
 
         # plot histogram of review lengths as number of tokens
         df['num_tokens'].hist(bins=30)
@@ -36,6 +57,7 @@ def analyse_csv(args):
         plt.xlabel('Number of Tokens')
         plt.ylabel('Number of Reviews')
         plt.savefig('word_count_hist.png')
+        plt.clf()
 
 
 def analyse_embeddings(args):
