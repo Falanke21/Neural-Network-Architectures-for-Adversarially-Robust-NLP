@@ -67,6 +67,15 @@ class MyTransformer(nn.Module):
                 else:
                     Config.ATTENTION_TYPE = 'norm'
                 self.layers.append(EncoderLayer(Config))
+        elif hasattr(Config, 'ATTENTION_TYPE') and Config.ATTENTION_TYPE == 'diagcos':
+            self.layers = nn.ModuleList()
+            half_point = self.n_layers // 2
+            for i in range(self.n_layers):
+                if i < half_point:
+                    Config.ATTENTION_TYPE = 'diag'
+                else:
+                    Config.ATTENTION_TYPE = 'cosformer'
+                self.layers.append(EncoderLayer(Config))
         else:
             self.layers = nn.ModuleList(
                 [EncoderLayer(Config) for _ in range(self.n_layers)])
