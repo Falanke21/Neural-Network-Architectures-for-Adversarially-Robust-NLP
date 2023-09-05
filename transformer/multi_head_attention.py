@@ -16,26 +16,24 @@ class MultiHeadAttention(nn.Module):
         assert self.mh_type in ['split', 'parallel'], \
             f"Multi-head attention type {self.mh_type} not supported"
 
-        _, self.q_same_as_k = get_attention_by_config(Config)
+        # 2 different ways to implement multi-head attention
+        if self.mh_type == 'split':
+            self.attention, self.q_same_as_k = get_attention_by_config(Config)
+            self.w_concat = nn.Linear(d_model, d_model)
+        elif self.mh_type == 'parallel':
+            print(f"Using parallel multi-head attention")
+            self.mha_list = []
+            for i in range(self.n_head):
+                attention, self.q_same_as_k = get_attention_by_config(Config)
+                self.mha_list.append(attention)
+            self.mha_list = nn.ModuleList(self.mha_list)
+            self.w_concat = nn.Linear(d_model * self.n_head, d_model)
 
         self.w_q = nn.Linear(d_model, d_model)
         if not self.q_same_as_k:
             self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
-        
-        # 2 different ways to implement multi-head attention
-        if self.mh_type == 'split':
-            self.w_concat = nn.Linear(d_model, d_model)
-            self.attention, _ = get_attention_by_config(Config)
-        elif self.mh_type == 'parallel':
-            print(f"Using parallel multi-head attention")
-            self.mha_list = []
-            for i in range(self.n_head):
-                attention, _ = get_attention_by_config(Config)
-                self.mha_list.append(attention)
-            self.mha_list = nn.ModuleList(self.mha_list)
-            self.w_concat = nn.Linear(d_model * self.n_head, d_model)
-
+    
     def forward(self, q, k, v, mask=None):
         # 1. dot product with weight matrices
         q, v = self.w_q(q), self.w_v(v)
