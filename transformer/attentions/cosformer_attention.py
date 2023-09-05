@@ -30,10 +30,9 @@ class CosformerAttention(nn.Module):
         # [batch_size, head, length, d_tensor]
         batch_size, head, length, d_tensor = k.size()
 
-        # 1. apply ReLU to all Q, K, and V
+        # 1. apply ReLU to all Q, K
         q = torch.nn.functional.relu(q)
         k = torch.nn.functional.relu(k)
-        v = torch.nn.functional.relu(v)
 
         # adopting code from https://github.com/OpenNLPLab/cosFormer/blob/main/cosformer.py
         # L = target length, S = source length, N = batch_size,

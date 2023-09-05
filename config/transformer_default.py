@@ -33,7 +33,7 @@ class TransformerConfig:
     # 'dot_product' or 'additive' or 'paas' or 'paas-linear' or 
     # 'simal1' or 'simal2' or 'soft' or 'linformer' or 'cosformer'
     # or 'norm' or 'diag' or 'local' or 'experiment'
-    # or 'transnormer'
+    # or 'transnormer' or 'robust' or 'reva' or 'revcos'
     ATTENTION_TYPE = 'dot_product'
     LINFORMER_K = 64
     DIAG_BLOCK_SIZE = 15

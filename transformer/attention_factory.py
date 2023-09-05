@@ -11,6 +11,7 @@ from .attentions.diag_attention import DiagAttention
 from .attentions.local_attention import LocalAttention
 from .attentions.robust import RobustAttention
 from .attentions.relu_value_attention import REVAttention
+from .attentions.relu_value_cosformer_attention import ReVCosAttention
 
 
 def get_attention_by_config(Config):
@@ -25,7 +26,7 @@ def get_attention_by_config(Config):
                      'paas-linear', 'simal1', 'simal2', "soft", "linformer",
                      'cosformer', 'norm', 'experiment',
                      'diag', 'local', 'transnormer', 'robust',
-                     'reva']
+                     'reva', 'revcos']
     if attention_type not in valid_a_types:
         raise ValueError(
             f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -67,5 +68,7 @@ def get_attention_by_config(Config):
         attention = RobustAttention(max_seq_length, Config.DIAG_BLOCK_SIZE)
     elif attention_type == 'reva':
         attention = REVAttention()
+    elif attention_type == 'revcos':
+        attention = ReVCosAttention()
 
     return attention, q_same_as_k
