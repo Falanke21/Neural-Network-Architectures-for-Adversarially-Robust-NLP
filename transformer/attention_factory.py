@@ -10,6 +10,7 @@ from .attentions.experiment import Experiment
 from .attentions.diag_attention import DiagAttention
 from .attentions.local_attention import LocalAttention
 from .attentions.robust import RobustAttention
+from .attentions.relu_value_attention import REVAttention
 
 
 def get_attention_by_config(Config):
@@ -23,7 +24,8 @@ def get_attention_by_config(Config):
     valid_a_types = ['dot_product', 'additive', 'paas',
                      'paas-linear', 'simal1', 'simal2', "soft", "linformer",
                      'cosformer', 'norm', 'experiment',
-                     'diag', 'local', 'transnormer', 'robust']
+                     'diag', 'local', 'transnormer', 'robust',
+                     'reva']
     if attention_type not in valid_a_types:
         raise ValueError(
             f"attention_type should be one of {valid_a_types}, but got {attention_type}")
@@ -58,10 +60,12 @@ def get_attention_by_config(Config):
         # TODO: make only first half layers use diag attention
         attention = DiagAttention(Config.DIAG_BLOCK_SIZE)
     elif attention_type == 'experiment':
-        attention = Experiment(d_tensor)
+        attention = Experiment(max_seq_length, Config.DIAG_BLOCK_SIZE)
     elif attention_type == 'local':
         attention = LocalAttention(Config.LOCAL_ATTENTION_R)
     elif attention_type == 'robust':
-        attention = RobustAttention()
+        attention = RobustAttention(max_seq_length, Config.DIAG_BLOCK_SIZE)
+    elif attention_type == 'reva':
+        attention = REVAttention()
 
     return attention, q_same_as_k

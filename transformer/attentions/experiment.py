@@ -1,79 +1,62 @@
+# Reference: https://github.com/hyunwoongko/transformer
 import torch
 import torch.nn as nn
-import numpy as np
 import math
 
-from ..layer_norm import LayerNorm
 
 class Experiment(nn.Module):
     """
-    compute Experiment attention
+    compute DiagAttention
 
     Query : given sentence that we focused on (decoder)
     Key : every sentence to check relationship with Query(encoder)
     Value : every sentence same with Key (encoder)
     """
 
-    def __init__(self, d_tensor):
+    def __init__(self, max_seq_length, block_size=15):
         super(Experiment, self).__init__()
-        print(f"Using Experiment")
-
-    def get_index(self, seq_len):
-        index = np.pi / 2 * torch.arange(1, seq_len + 1).reshape(1, -1, 1)
-
-        return nn.Parameter(index, requires_grad=False)
+        self.block_size = block_size
+        self.softmax = nn.Softmax(dim=-1)
+        # self.Wp = nn.Linear(
+        #         max_seq_length, max_seq_length, bias=False).weight
+        print(f"Using Experiment with block size {block_size}")
 
     def forward(self, q, k, v, mask=None):
         # input is 4 dimension tensor
         # [batch_size, head, length, d_tensor]
         batch_size, head, length, d_tensor = k.size()
 
-        # # 1. apply ReLU to all Q, K, and V
-        # q = torch.nn.functional.relu(q)
-        # k = torch.nn.functional.relu(k)
-        # v = torch.nn.functional.relu(v)
+        # 1. dot product Query with Key^T to compute similarity
+        # transpose [batch_size, head, d_tensor, length]
+        k_t = k.transpose(2, 3)
+        
+        # in diag attention, we divide q and k into length / w blocks,
+        # where w is the block size
+        # we only compute the attention within each block
+        # for ex, if length = 16, w = 4, then we have 4 blocks
+        # q0 @ k0_t, q1 @ k1_t, q2 @ k2_t, q3 @ k3_t
+        # and we concatenate the results to get the final QK^T
+        w = self.block_size
+        num_blocks = length // w
+        q_blocks = torch.split(q, w, dim=2)  # list of [batch_size, head, w, d_tensor]
+        k_blocks = torch.split(k_t, w, dim=3)  # list of [batch_size, head, d_tensor, w]
+        # score = torch.zeros(batch_size, head, length, length).to(q.device)
+        # init score to be matrix of -10000
+        score = torch.ones(batch_size, head, length, length).to(q.device) * -10000
 
-        # adopting code from https://github.com/OpenNLPLab/cosFormer/blob/main/cosformer.py
-        # L = target length, S = source length, N = batch_size,
-        # h = head, E = d_model, d = d_tensor
-        bsz = batch_size
-        num_heads = head
-        head_dim = d_tensor
-        tgt_len = length
-        src_len = length
-        eps = 1e-6
-        # multihead reshape
-        # (N, h, L, d) -> (N * h, L, d)
-        q = q.contiguous().view(batch_size * head, length, d_tensor)
-        k = k.contiguous().view(batch_size * head, length, d_tensor)
-        v = v.contiguous().view(batch_size * head, length, d_tensor)
+        # TODO (optional): vectorize this for loop
+        for i in range(num_blocks):
+            score_block = q_blocks[i] @ k_blocks[i]  # [batch_size, head, w, w]
+            score[:, :, i * w: (i + 1) * w, i * w: (i + 1) * w] = score_block
 
-        m = length
-        # get index and send to cuda
-        weight_index = self.get_index(m).to(q)
-        # (N * h, L, 2 * d)
-        q_ = torch.cat([q * torch.sin(weight_index[:, :tgt_len, :] / m),
-                       q * torch.cos(weight_index[:, :tgt_len, :] / m)], dim=-1)
-        # (N * h, S, 2 * d)
-        k_ = torch.cat([k * torch.sin(weight_index[:, :src_len, :] / m),
-                       k * torch.cos(weight_index[:, :src_len, :] / m)], dim=-1)
+        # 2. apply masking (opt)
+        if mask is not None:
+            score = score.masked_fill(mask == 0, -10000)
 
-        # Need to improve speed!
-        # (N * h, L, 2 * d) (N * h, L, d) -> (N * h, L, h, 2 * d, d)
-        kv_ = torch.einsum("nld,nlm->nldm", k_, v)
-        # (N * h, L, 2 * d, d) -> (N * h, L, 2 * d, d)
-        kv_cum = torch.cumsum(kv_, dim=1)
-        # (N * h, L, 2 * d) (N * h, L, 2 * d, d) -> (N * h, L, d)
-        qkv = torch.einsum("nld,nldm->nlm", q_, kv_cum)
-        # (N * h, L, 2 * d) -> (N * h, L, 2 * d)
-        k_cum = torch.cumsum(k_, dim=1)
-        # (N * h, L, 2 * d) (N * h, L, 2 * d) -> (N * h, L)
-        denom = torch.clamp_min(torch.einsum("nlm,nlm->nl", q_, k_cum), eps)
-        # (N * h, L, d) (N * h, L, 1) -> (N * h, L, d)
-        attn_output = qkv / denom.unsqueeze(-1)
-        # (N * h, L, d) -> (N, h, L, d)
-        attn_output = attn_output.view(bsz, num_heads, tgt_len, head_dim)
+        # 3. pass them softmax to make [0, 1] range
+        score = self.softmax(score)
 
-        # attn_output is shape of [batch_size, head, length, d_tensor]
+        # 4. multiply with Value
+        result = score @ v  # [batch_size, head, length, d_tensor]
 
-        return attn_output
+        return result
