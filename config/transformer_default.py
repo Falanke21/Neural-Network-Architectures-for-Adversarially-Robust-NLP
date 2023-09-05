@@ -40,3 +40,4 @@ class TransformerConfig:
     NORM_ATTENTION_TYPE = 'layer-norm' # 'layer-norm' or 'srms'
     POSITIONAL_ENCODING = True  # Default is True
     FFN_TYPE = 'standard'  # 'standard' or 'glu'
+    MH_TYPE = 'split'  # 'split' or 'parallel'
