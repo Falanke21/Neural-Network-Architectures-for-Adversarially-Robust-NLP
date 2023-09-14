@@ -4,7 +4,7 @@ import torchtext
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-# nltk.download('punkt')  # Uncomment this line if you haven't downloaded nltk punkt
+nltk.download('punkt')  # Uncomment this line if you haven't downloaded nltk punkt
 
 
 def tokenize(text: str, remove_stopwords: bool = False) -> list:
