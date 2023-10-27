@@ -29,12 +29,12 @@ export MODEL_CHOICE="transformer"
 # if LOAD_TRAINED_MODEL exists, then train with --load-trained
 if [ -z "$LOAD_TRAINED_MODEL" ]; then
   # train the model
-  python train.py --csv data/data300k-with-3stars \
+  python train.py --csv data/yelp-polarity \
       --checkpoints \
       --loss-values \
       --output-dir $1
 else
-  python train.py --csv data/data300k-with-3stars \
+  python train.py --csv data/yelp-polarity \
       --checkpoints \
       --loss-values \
       --output-dir $1 \
