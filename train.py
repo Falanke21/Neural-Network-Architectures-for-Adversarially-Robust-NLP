@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from utils.model_factory import construct_model_from_config
+from utils.plot_loss import do_plot
 from utils.yelp_review_dataset import YelpReviewDataset
 
 from training_scheme.adversarial import adversarial_training
@@ -87,3 +88,8 @@ if __name__ == '__main__':
         standard_training(model, Config, device, args,
                           train_loader, val_loader)
     print(f"Training complete with output directory {args.output_dir}")
+
+    # plot train/val loss and val accuracy
+    print(f"Plotting loss and accuracy to {args.output_dir}")
+    model_choice = os.environ["MODEL_CHOICE"]
+    do_plot(model_choice, Config.NUM_EPOCHS, args.output_dir)
