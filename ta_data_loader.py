@@ -4,7 +4,7 @@ import pandas as pd
 import textattack
 
 # Load a dataset
-data_path = "data/data300k-with-3stars/test.csv"
+data_path = "data/yelp-polarity/test.csv"
 df = pd.read_csv(data_path)
 
 # transform df into a list of tuples [(text, label), ...]

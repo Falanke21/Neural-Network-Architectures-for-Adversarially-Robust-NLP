@@ -41,6 +41,5 @@ do
     --num-examples ${NUM_EXAMPLES} \
     --disable-stdout \
     --attack-recipe $ATTACK \
-    --log-individual-attack-results ${TA_VICTIM_MODEL_DIR}/attack_details/${TA_VICTIM_MODEL_EPOCH} \
     | python utils/ta_output_parser.py
 done

@@ -6,13 +6,26 @@ import torch
 import os
 
 
+def validate_config_path(config_path: str):
+    if not os.path.isfile(config_path):
+        # two cases:
+        # 1. config file does not exist
+        # 2. current working directory is checkpoints and config file is in parent directory
+        # now we handle case 2
+        if os.path.basename(os.path.dirname(config_path)) != 'checkpoints':
+            raise FileNotFoundError(f"Config file {config_path} not found")
+        else:
+            print(f"Config file {config_path} not found, using config from parent directory")
+            config_path = os.path.join(os.path.dirname(os.path.dirname(config_path)), 'config.py')
+            print(f"New config file path: {config_path}")
+    return config_path
+
+
 def construct_model_from_config(config_path: str):
     assert os.environ["MODEL_CHOICE"] in [
         'lstm', 'transformer'], "Env var MODEL_CHOICE must be either 'lstm' or 'transformer'"
     # load Config object from config file
-    # check config file exists
-    if not os.path.isfile(config_path):
-        raise FileNotFoundError(f"Config file {config_path} not found")
+    config_path = validate_config_path(config_path)
     # import configs
     spec = importlib.util.spec_from_file_location("Config", config_path)
     config_module = importlib.util.module_from_spec(spec)
