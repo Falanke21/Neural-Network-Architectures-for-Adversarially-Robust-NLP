@@ -23,6 +23,9 @@ if __name__ == '__main__':
                         default=False, help='Output txt files of loss values')
     parser.add_argument('--adversarial-training', action='store_true', default=False,
                         help='Use adversarial training rather than standard training')
+    parser.add_argument('--resume-training', action='store_true', default=False,
+                        help='Resume training from the largest epoch in {output_dir}/checkpoints, \
+                        currently only support standard training')
     args = parser.parse_args()
 
     # default config file to output_dir/config.py

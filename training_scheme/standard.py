@@ -22,15 +22,50 @@ def get_optimizer(model, Config):
     return optimizer
 
 
+def load_largest_epoch(model, args):
+    """
+    If args.resume_training is True, then we will load the largest checkpoint
+    and resume training from there.
+    """
+    checkpoint_dir = f'{args.output_dir}/checkpoints'
+    if not os.path.exists(checkpoint_dir):
+        raise ValueError(
+            f"Could not find checkpoint directory {checkpoint_dir}")
+    # find the largest epoch and load that checkpoint
+    largest_epoch = 0
+    # file names "os.environ['MODEL_CHOICE']_model_epoch{epoch+1}.pt"
+    # the epoch number starts with 1 in files, but starts with 0 in code
+    # My apologies!
+    for file_name in os.listdir(checkpoint_dir):
+        if file_name.endswith('.pt'):
+            epoch = int(file_name.split('_')[-1].split('.')[0][5:])
+            if epoch > largest_epoch:
+                largest_epoch = epoch
+    if largest_epoch == 0:
+        raise ValueError(f"Could not find any checkpoint in {checkpoint_dir}")
+    print(f"Found checkpoint {os.environ['MODEL_CHOICE']}_model_epoch{largest_epoch}.pt")
+
+    largest_epoch_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{largest_epoch}.pt'
+    model.load_state_dict(torch.load(largest_epoch_path))
+    print(f"Resume training from checkpoint {largest_epoch_path}")
+    return model, largest_epoch
+
+
 def standard_training(model, Config, device, args, train_loader, val_loader):
     print("Standard Training...")
+    starting_epoch = 0
+    if args.resume_training:
+        # find the largest epoch and load that checkpoint
+        model, starting_epoch = load_largest_epoch(model, args)
     # define binary cross entropy loss function and optimizer
     criterion = get_criterion()
     optimizer = get_optimizer(model, Config)
 
     # start training
     train_losses, val_losses, val_accuracy = [], [], []
-    for epoch in range(Config.NUM_EPOCHS):
+    print(f"Start with epoch {starting_epoch + 1}")
+    for epoch in range(starting_epoch, Config.NUM_EPOCHS):
+        print(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}...")
         total_loss = 0
         model.train()
         for i, (data, labels, text) in enumerate(tqdm(train_loader)):
@@ -57,7 +92,7 @@ def standard_training(model, Config, device, args, train_loader, val_loader):
             optimizer.step()
 
             # update tqdm with loss value every a few batches
-            NUM_PRINT_PER_EPOCH = 3
+            NUM_PRINT_PER_EPOCH = 2
             if (i+1) % (len(train_loader) // NUM_PRINT_PER_EPOCH) == 0:
                 # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
                 tqdm.write(f"Epoch {epoch + 1}/{Config.NUM_EPOCHS}, \
