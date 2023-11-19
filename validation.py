@@ -82,7 +82,7 @@ def run_ta_calulate_acc_under_attack(model_path) -> float:
     query_budget = 300
     command = f"textattack attack \
         --model-from-file ta_model_loader.py \
-        --dataset-from-file ta_data_loader.py \
+        --dataset-from-file ta_data_loader_validation.py \
         --model-batch-size 32 --num-examples {num_attack_examples} \
         --disable-stdout --attack-recipe {attack} \
         --query-budget {query_budget}"
@@ -116,7 +116,12 @@ def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model,
         print(f'\n#####\nValidating epoch {epoch}/{total_epochs}\n#####\n')
         model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch}.pt'
         print(f"Loading model from {model_path}")
-        model.load_state_dict(torch.load(model_path))
+        try:
+            model.load_state_dict(torch.load(model_path))
+        # if the epoch is not found, we simply skip it
+        except FileNotFoundError:
+            print(f"Could not find {model_path}, skipping...")
+            continue
         model.eval()
 
         val_data = pd.read_csv(f'{args.csv_folder}/val.csv')
