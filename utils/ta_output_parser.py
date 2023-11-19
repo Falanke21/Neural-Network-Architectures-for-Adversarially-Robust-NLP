@@ -39,7 +39,7 @@ def parse_ta_output(text_stream) -> dict:
     return data
 
 
-def write_to_csv(data: dict, output_dir: str, epoch_num: int, attack_recipe: str):
+def write_to_csv(data: dict, output_dir: str, epoch_num: int, attack_recipe: str, ta_results_file_prefix: str = "ta_results"):
     """
     Write the results of TextAttack to a csv file
     """
@@ -48,7 +48,7 @@ def write_to_csv(data: dict, output_dir: str, epoch_num: int, attack_recipe: str
     attack_success_rate = data["attack_success_rate"]
     avg_perturbed_word = data["avg_perturbed_word"]
 
-    csv_filename = f"{output_dir}/ta_results_{epoch_num}.csv"
+    csv_filename = f"{output_dir}/{ta_results_file_prefix}_{epoch_num}.csv"
     # if csv_filename is not found, we initialize it with the header
     if not os.path.exists(csv_filename):
         with open(csv_filename, "w") as f:
@@ -89,9 +89,11 @@ if __name__ == "__main__":
     attack_recipe = os.environ["TA_ATTACK_RECIPE"]
     model_path = os.environ["TA_VICTIM_MODEL_PATH"]
     epoch_num = os.environ["TA_VICTIM_MODEL_EPOCH"]
+    # if exist TA_RESULTS_FILE_PREFIX, use it; otherwise, use the default value
+    ta_results_file_prefix = os.environ.get("TA_RESULTS_FILE_PREFIX", "ta_results")
     output_dir = model_path[:model_path.rfind("/")]
 
     # parse the output of TextAttack
     data = parse_ta_output(fileinput.input())
     # write the results to a csv file
-    write_to_csv(data, output_dir, epoch_num, attack_recipe)
+    write_to_csv(data, output_dir, epoch_num, attack_recipe, ta_results_file_prefix)
