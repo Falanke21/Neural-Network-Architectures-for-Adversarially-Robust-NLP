@@ -16,7 +16,7 @@ if [ ! -f "$1" ]; then
 fi
 
 # the model to attack, for ta_model_loader.py
-export MODEL_CHOICE="transformer"
+export MODEL_CHOICE="lstm"
 export TA_VICTIM_MODEL_PATH=$1
 TA_VICTIM_MODEL_DIR=$(dirname "$TA_VICTIM_MODEL_PATH")
 
