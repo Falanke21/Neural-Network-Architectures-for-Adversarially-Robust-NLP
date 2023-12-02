@@ -12,6 +12,9 @@ from .attentions.local_attention import LocalAttention
 from .attentions.robust import RobustAttention
 from .attentions.relu_value_attention import REVAttention
 from .attentions.relu_value_cosformer_attention import ReVCosAttention
+from .attentions.nega_relu_attention import NREVAttention
+from .attentions.sigmoid_attention import SigVAttention
+from .attentions.tanh_attention import TanhVAttention
 
 
 def get_attention_by_config(Config):
@@ -22,14 +25,6 @@ def get_attention_by_config(Config):
         attention_type = Config.ATTENTION_TYPE
     else:
         attention_type = 'dot_product'  # default scale dot product attention
-    valid_a_types = ['dot_product', 'additive', 'paas',
-                     'paas-linear', 'simal1', 'simal2', "soft", "linformer",
-                     'cosformer', 'norm', 'experiment',
-                     'diag', 'local', 'transnormer', 'robust',
-                     'reva', 'revcos']
-    if attention_type not in valid_a_types:
-        raise ValueError(
-            f"attention_type should be one of {valid_a_types}, but got {attention_type}")
 
     max_seq_length = Config.MAX_SEQ_LENGTH
     q_same_as_k = False
@@ -70,5 +65,11 @@ def get_attention_by_config(Config):
         attention = REVAttention()
     elif attention_type == 'revcos':
         attention = ReVCosAttention()
+    elif attention_type == 'nreva':
+        attention = NREVAttention()
+    elif attention_type == 'sigva':
+        attention = SigVAttention()
+    elif attention_type == 'tanhva':
+        attention = TanhVAttention()
 
     return attention, q_same_as_k
