@@ -109,8 +109,6 @@ class MyTransformer(nn.Module):
         if Config.RELU_REGULARIZATION:
             assert Config.ATTENTION_TYPE == 'reva'
             assert Config.RELU_REGULARIZATION_LAMBDA > 0
-            print(
-                f"Applying ReLU regularization with lambda {Config.RELU_REGULARIZATION_LAMBDA}")
             relu_regularization = torch.tensor(
                 0., dtype=torch.double, device=loss.device)
             # old_loss = loss.item()
