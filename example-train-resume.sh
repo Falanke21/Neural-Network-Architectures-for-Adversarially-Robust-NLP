@@ -2,6 +2,9 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=fh422
 #SBATCH -p gpgpuB
+
+# Resumes training from the largest checkpoint in the output directory.
+
 source /vol/bitbucket/fh422/venv/bin/activate
 cd /homes/fh422/ic/project
 

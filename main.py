@@ -1,3 +1,8 @@
+# Automatically run the both training and validation scripts 
+# for the transformer and LSTM models
+
+# Usage: python main.py --model-choice transformer --train-folder <folder that contains "config.py">
+
 import argparse
 import os
 import subprocess
