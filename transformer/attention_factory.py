@@ -62,7 +62,10 @@ def get_attention_by_config(Config):
     elif attention_type == 'robust':
         attention = RobustAttention(max_seq_length, Config.DIAG_BLOCK_SIZE)
     elif attention_type == 'reva':
-        attention = REVAttention()
+        if hasattr(Config, 'RELU_REGULARIZATION') and Config.RELU_REGULARIZATION:
+            attention = REVAttention(True, Config.RELU_REGULARIZATION_LAMBDA, Config.USE_GPU)
+        else:
+            attention = REVAttention(False, 0, Config.USE_GPU)
     elif attention_type == 'revcos':
         attention = ReVCosAttention()
     elif attention_type == 'nreva':

@@ -100,3 +100,26 @@ class MyTransformer(nn.Module):
         x = torch.mean(x, dim=1)  # (batch_size, d_model)
         x = self.fc(x)  # (batch_size, output_dim)
         return x
+
+    def relu_regularization(self, Config, loss: torch.Tensor):
+        """
+        This experiment is to see if ReLU regularization can improve robustness.
+        Only applicable to ReLU Value Attention.
+        """
+        if Config.RELU_REGULARIZATION:
+            assert Config.ATTENTION_TYPE == 'reva'
+            assert Config.RELU_REGULARIZATION_LAMBDA > 0
+            print(
+                f"Applying ReLU regularization with lambda {Config.RELU_REGULARIZATION_LAMBDA}")
+            relu_regularization = torch.tensor(
+                0., dtype=torch.double, device=loss.device)
+            # old_loss = loss.item()
+            for layer in self.layers:
+                attention = layer.attention.attention
+                relu_regularization = attention.get_regularization()
+                # Note: this regularization is batched and already scaled by lambda
+                loss += relu_regularization
+                # reset regularization sum for next forward pass
+                attention.reset_regularization()
+            # print(f"Old loss: {old_loss:.4f}, New loss: {loss.item():.4f}")
+        return loss

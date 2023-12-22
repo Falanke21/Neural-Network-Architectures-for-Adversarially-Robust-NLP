@@ -43,7 +43,8 @@ def load_largest_epoch(model, args):
                 largest_epoch = epoch
     if largest_epoch == 0:
         raise ValueError(f"Could not find any checkpoint in {checkpoint_dir}")
-    print(f"Found checkpoint {os.environ['MODEL_CHOICE']}_model_epoch{largest_epoch}.pt")
+    print(
+        f"Found checkpoint {os.environ['MODEL_CHOICE']}_model_epoch{largest_epoch}.pt")
 
     largest_epoch_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{largest_epoch}.pt'
     model.load_state_dict(torch.load(largest_epoch_path))
@@ -81,6 +82,10 @@ def standard_training(model, Config, device, args, train_loader, val_loader):
             # forward
             outputs = model(data)
             loss = criterion(outputs, labels)
+            # ReLU regularization if necessary
+            if hasattr(model, 'relu_regularization'):
+                loss = model.relu_regularization(Config, loss)
+
             total_loss += loss.item()
             # backward
             optimizer.zero_grad()
