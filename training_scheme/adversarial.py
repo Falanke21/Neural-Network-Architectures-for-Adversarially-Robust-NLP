@@ -1,3 +1,5 @@
+# Note: Only do 1 epoch of adversarial training.
+
 import os
 import torch
 import textattack
@@ -137,6 +139,10 @@ def get_optimizer(model, Config):
 
 
 def adversarial_training(model, Config, device, args, train_loader, val_loader, vocab):
+    """
+    Adversarial training.
+    Note: Only do 1 epoch of adversarial training.
+    """
     print("Adversarial Training...")
     # Construct model wrapper for TextAttack
     model_tokenizer = tokenizer.MyTokenizer(

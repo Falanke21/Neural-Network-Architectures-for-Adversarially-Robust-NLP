@@ -26,9 +26,9 @@ if __name__ == '__main__':
 	chunk_size = int(len(train_data) / args.num_chunks)
 	for i in tqdm(range(args.num_chunks)):
 		chunk = train_data.iloc[i * chunk_size:(i + 1) * chunk_size]
-		os.makedirs(args.output_dir + f'/{i}', exist_ok=True)
-		chunk.to_csv(f'{args.output_dir}/{i}/train.csv', index=False, header=True)
+		os.makedirs(args.output_dir + f'/{i+1}', exist_ok=True)
+		chunk.to_csv(f'{args.output_dir}/{i+1}/train.csv', index=False, header=True)
 
 		# also copy val.csv to each chunk's folder
-		os.system(f'cp {args.csv_folder}/val.csv {args.output_dir}/{i}/val.csv')
+		os.system(f'cp {args.csv_folder}/val.csv {args.output_dir}/{i+1}/val.csv')
 	print(f'Split training data into {args.num_chunks} chunks')

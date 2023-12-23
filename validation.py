@@ -1,3 +1,13 @@
+# Validation process
+# Find the best epoch based on the sum of standard accuracy and accuracy under attack
+# from the checkpoints folder, every n epochs (n = 5)
+# and output the best epoch and its accuracy to a txt file in output_dir.
+# When n = 1, it will examine every epoch in the checkpoints folder.
+
+# Usage:
+# os.environ['MODEL_CHOICE'] = 'transformer'
+# command = 'python validation.py --csv-folder data/yelp-polarity --output-dir tran/baseline/15head'
+
 import argparse
 import csv
 import pandas as pd
@@ -34,7 +44,8 @@ def get_standard_val_acc(epoch, val_dataset, Config, model, device):
             {args.output_dir}/{os.environ["MODEL_CHOICE"]}_val_accuracy.txt')
 
     else:
-        print(f"Could not find {args.output_dir}/{os.environ['MODEL_CHOICE']}_val_accuracy.txt")
+        print(
+            f"Could not find {args.output_dir}/{os.environ['MODEL_CHOICE']}_val_accuracy.txt")
         print("Running validation process...")
         # otherwise, we need to do the validation process
         # get dataloader from dataset
@@ -94,15 +105,40 @@ def run_ta_calulate_acc_under_attack(model_path) -> float:
     return get_acc_under_attack(data)
 
 
-def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model, device):
+def find_model_path_for_current_epoch(model, checkpoint_dir, epoch) -> str:
     """
-    Top down function to calculate the validation results of every 5 epochs
+    Find the model path for the current epoch
+    and load the model from that path to the model object
+    Return the model path as string, or None if the model path is not found
     """
-    # create a dict to accumulate the results of every 5 epochs
+    # TODO Change: Hacky way to find model path from 2 cases: normal and adversarial training
+    model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch}.pt'
+    print(f"Loading model from {model_path}")
+    try:
+        model.load_state_dict(torch.load(model_path))
+    # if the epoch is not found, we simply skip it
+    except FileNotFoundError:
+        print(f"Could not find {model_path}, trying to see if it's adversarial training")
+        model_path = f'{checkpoint_dir}/at_model_{epoch}.pt'
+        print(f"Loading model from {model_path}")
+        try:
+            model.load_state_dict(torch.load(model_path))
+        except FileNotFoundError:
+            print(f"Still could not find {model_path}, skipping epoch {epoch}")
+            return None
+    return model_path
+
+
+def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model, device, adversarial=False):
+    """
+    Top down function to calculate the validation results of every n epochs
+    """
+    # create a dict to accumulate the results of every n epochs
     # dict key: epoch, value: (standard accuracy, accuracy under textfooler)
     validation_results = {}
-    total_epochs = Config.NUM_EPOCHS
-    # create a csv file with header to store the results of every 5 epochs
+    # if adversarial training, we only have 10 splits
+    total_epochs = 10 if adversarial else Config.NUM_EPOCHS
+    # create a csv file with header to store the results of every n epochs
     with open(f'{args.output_dir}/model_selection_result.csv', 'a') as f:
         writer = csv.writer(f)
         writer.writerow(
@@ -112,15 +148,19 @@ def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model,
                 "Accuracy under attack",
             ]
         )
-    for epoch in range(5, total_epochs + 1, 5):
+    # Important Note:
+    # when n = 5, it will calculate the validation results of every 5 epochs,
+    # when n = 1, it will calculate the validation results of every epoch.
+    # Note: in adversarial training, we can set n = 1 to calculate the validation results of every
+    # output model in adv-checkpoints folder.
+    n = 1 if adversarial else 5
+    # we can skip the first n epochs, since they are not well trained
+    for epoch in range(n, total_epochs + 1, n):
         print(f'\n#####\nValidating epoch {epoch}/{total_epochs}\n#####\n')
-        model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch}.pt'
-        print(f"Loading model from {model_path}")
-        try:
-            model.load_state_dict(torch.load(model_path))
-        # if the epoch is not found, we simply skip it
-        except FileNotFoundError:
-            print(f"Could not find {model_path}, skipping...")
+
+        model_path = find_model_path_for_current_epoch(model, checkpoint_dir, epoch)
+        # If this epoch is not found, we skip it
+        if not model_path:
             continue
         model.eval()
 
@@ -136,7 +176,8 @@ def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model,
         # now validate the accuracy under attack (textfooler)
         float_acc_under_attack = run_ta_calulate_acc_under_attack(model_path)
 
-        validation_results[epoch] = (float_standard_val_acc, float_acc_under_attack)
+        validation_results[epoch] = (
+            float_standard_val_acc, float_acc_under_attack)
         # write the results of each epoch to the csv file
         with open(f'{args.output_dir}/model_selection_result.csv', 'a') as f:
             writer = csv.writer(f)
@@ -176,13 +217,14 @@ def find_best_epochs(validation_results):
     return (best_epoch_of_sum, best_epoch_of_standard)
 
 
-
 if __name__ == "__main__":
     assert os.environ["MODEL_CHOICE"] in [
         "lstm", "transformer"], "env var MODEL_CHOICE must be either lstm or transformer"
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv-folder', type=str, required=True)
     parser.add_argument('--output-dir', type=str, default='tmp')
+    parser.add_argument('--adversarial', action='store_true', default=False,
+                        help='Whether this is an adversarial training run')
     args = parser.parse_args()
 
     # default config file to output_dir/config.py
@@ -193,19 +235,24 @@ if __name__ == "__main__":
 
     model, Config, vocab, device = construct_model_from_config(config_path)
 
-    # calculate the validation results of every 5 epochs
+    # calculate the validation results of every n epochs
     validation_results = calculate_all_validation_results(
-        Config, args, checkpoint_dir, vocab, model, device)
+        Config, args, checkpoint_dir, vocab, model, device, args.adversarial)
 
     # in the end, we find the best epoch based on the sum of two metrics:
-    best_epoch_of_sum, best_epoch_of_standard = find_best_epochs(validation_results)
-    
+    best_epoch_of_sum, best_epoch_of_standard = find_best_epochs(
+        validation_results)
+
     # output the best epochs and their accuracy to a txt file in output_dir
     with open(f'{args.output_dir}/model_selection_result.txt', 'w') as f:
-        f.write(f'1. Best epoch based on sum of standard accuracy and accuracy under attack: {best_epoch_of_sum}\n')
-        f.write(f'Standard accuracy and accuracy under attack for 1.: {validation_results[best_epoch_of_sum]}\n')
-        f.write(f'2. Best epoch based on standard accuracy: {best_epoch_of_standard}\n')
-        f.write(f'Standard accuracy and accuracy under attack for 2.: {validation_results[best_epoch_of_standard]}\n')
+        f.write(
+            f'1. Best epoch based on sum of standard accuracy and accuracy under attack: {best_epoch_of_sum}\n')
+        f.write(
+            f'Standard accuracy and accuracy under attack for 1.: {validation_results[best_epoch_of_sum]}\n')
+        f.write(
+            f'2. Best epoch based on standard accuracy: {best_epoch_of_standard}\n')
+        f.write(
+            f'Standard accuracy and accuracy under attack for 2.: {validation_results[best_epoch_of_standard]}\n')
 
     # print the best epochs and their accuracy
     with open(f'{args.output_dir}/model_selection_result.txt', 'r') as f:
