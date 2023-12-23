@@ -93,6 +93,7 @@ if __name__ == '__main__':
     print(f"Training complete with output directory {args.output_dir}")
 
     # plot train/val loss and val accuracy
-    print(f"Plotting loss and accuracy to {args.output_dir}")
-    model_choice = os.environ["MODEL_CHOICE"]
-    do_plot(model_choice, Config.NUM_EPOCHS, args.output_dir)
+    if args.loss_values:
+        print(f"Plotting loss and accuracy to {args.output_dir}")
+        model_choice = os.environ["MODEL_CHOICE"]
+        do_plot(model_choice, Config.NUM_EPOCHS, args.output_dir)
