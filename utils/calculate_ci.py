@@ -4,6 +4,7 @@
 import argparse
 import csv
 import numpy as np
+import pandas as pd
 import os
 
 from find_best_head import find_accs_from_model_result_txt
@@ -121,6 +122,35 @@ def find_ci_for_5_models():
         writer.writerow(
             [f"{model_to_ci_acc_under_attack[model]:.2f}%" for model in model_to_ci_acc_under_attack])
 
+
+def find_accs_from_ta_results_csv(csv_path: str) -> tuple:
+    """
+    # Given an example txt path, get the accuracies
+    # By examine the ta_results_***.csv file
+    # Return a tuple of (best_std_acc, best_acc_under_attack)
+    # Note: these returned values are in percentage form, but we remove the % sign
+    """
+    # Read the csv file into a dataframe
+    df = pd.read_csv(csv_path)
+    # make sure the dataframe is exactly 6 rows plus the header
+    if len(df) != 6:
+        raise ValueError(
+            f"Number of rows in {csv_path} is not 6, did the test finish?")
+    # first get std_acc, note it's the same for all rows
+    std_acc = df.iloc[0]['Original accuracy']
+    # convert from a string of percentage to a float
+    std_acc = float(std_acc[:-1])
+    # then get acc_under_attack, also need to convert to float first,
+    # note we need to take the mean of all rows
+    lst = []
+    for i in range(len(df)):
+        acc_under_attack = df.iloc[i]['Accuracy under attack']
+        acc_under_attack = float(acc_under_attack[:-1])
+        lst.append(acc_under_attack)
+    acc_under_attack = np.mean(lst)
+    return std_acc, acc_under_attack
+
+
 def find_ci_from_rootdir(arch: str, best_head: str):
     """
     # Given an example txt path, get the accuracies and calculate the ci in the subdirectories
@@ -136,21 +166,36 @@ def find_ci_from_rootdir(arch: str, best_head: str):
     std_acc_lst = []
     acc_under_attack_lst = []
 
+    #     txt_path = f"vol_folder/model_zoo/continue/4-layer/{trial_name}/tran/{arch}/{best_head}/model_selection_result.txt"
+    #     std_acc, acc_under_attack = find_accs_from_model_result_txt(txt_path)
+    #     # these are in decimal form, so we multiply by 100 to get percentage
+    #     std_acc *= 100
+    #     acc_under_attack *= 100
+    #     std_acc_lst.append(std_acc)
+    #     acc_under_attack_lst.append(acc_under_attack)
     for trial_name in trial_names:
-        txt_path = f"vol_folder/model_zoo/continue/4-layer/{trial_name}/tran/{arch}/{best_head}/model_selection_result.txt"
-        std_acc, acc_under_attack = find_accs_from_model_result_txt(txt_path)
-        # these are in decimal form, so we multiply by 100 to get percentage
-        std_acc *= 100
-        acc_under_attack *= 100
+        dir_path = f"vol_folder/model_zoo/continue/4-layer/{trial_name}/tran/{arch}/{best_head}"
+        # search for a file name in the dir starting with "ta_results_***.csv"
+        csv_path = ""
+        for file_name in os.listdir(dir_path):
+            if file_name.startswith("ta_results_"):
+                csv_path = os.path.join(dir_path, file_name)
+                break
+        if csv_path == "":
+            raise ValueError(f"No ta_results_***.csv file found in {dir_path}, did you run the test?")
+        # These are in percentage form, but don't have the % sign
+        std_acc, acc_under_attack = find_accs_from_ta_results_csv(csv_path)
         std_acc_lst.append(std_acc)
         acc_under_attack_lst.append(acc_under_attack)
-        
+
     std_acc_mean, std_acc_ci = calculate_ci(std_acc_lst)
-    acc_under_attack_mean, acc_under_attack_ci = calculate_ci(acc_under_attack_lst)
+    acc_under_attack_mean, acc_under_attack_ci = calculate_ci(
+        acc_under_attack_lst)
 
     print(f"Architecture: {arch}, best_head: {best_head}")
     print(f"Standard accuracy: {std_acc_mean:.2f}% ± {std_acc_ci:.2f}%")
-    print(f"Accuracy under attack: {acc_under_attack_mean:.2f}% ± {acc_under_attack_ci:.2f}%")
+    print(
+        f"Accuracy under attack: {acc_under_attack_mean:.2f}% ± {acc_under_attack_ci:.2f}%")
 
     return std_acc_mean, std_acc_ci, acc_under_attack_mean, acc_under_attack_ci
 
