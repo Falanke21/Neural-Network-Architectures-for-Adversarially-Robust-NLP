@@ -199,6 +199,8 @@ def find_best_epochs(validation_results):
     Return a tuple of the best epochs of the 2 strategies
     (best_epoch_of_sum, best_epoch_of_standard)
     """
+    if not validation_results or len(validation_results) == 0:
+        raise ValueError("Error: no validation results found, check model_selection_result.csv?")
     best_epoch_of_sum = 0
     max_sum_of_accuracy = 0
     for epoch, (standard_val_acc, acc_under_attack) in validation_results.items():
@@ -259,5 +261,8 @@ if __name__ == "__main__":
         print(f.read())
 
     # copy the best epoch of sum from checkpoints to output_dir
-    model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{best_epoch_of_sum}.pt'
+    if args.adversarial:
+        model_path = f'{checkpoint_dir}/at_model_{best_epoch_of_sum}.pt'
+    else:
+        model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{best_epoch_of_sum}.pt'
     subprocess.run(f'cp {model_path} {args.output_dir}', shell=True)

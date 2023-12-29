@@ -51,5 +51,5 @@ do
     cp $1/at_model.pt $1/checkpoints/at_model_$i.pt
 done
 
-# finally cp 'at_model.pt' to be 'transfromer'
-cp $1/at_model.pt $1/transformer_model_at.pt
+# finally remove 'at_model.pt'
+rm $1/at_model.pt
