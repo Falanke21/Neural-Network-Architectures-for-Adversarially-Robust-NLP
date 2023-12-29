@@ -189,6 +189,8 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
                         Batch Loss: {loss.item():.4f}")
             
     # save model to at_model.pt
+    # Note: in adv training we save the model at every 1/10 of each training
+    # see example-train-adv.sh for more details 
     print(f"Saving model to {args.output_dir}/at_model.pt")
     torch.save(model.state_dict(), f'{args.output_dir}/at_model.pt')
 

@@ -43,6 +43,9 @@ if __name__ == '__main__':
     model, Config, vocab, device = construct_model_from_config(config_path)
 
     if args.load_trained:
+        if args.resume_training:
+            raise ValueError(
+                "Cannot resume training and load trained model at the same time!")
         model.load_state_dict(torch.load(args.load_trained))
         print(f"Loaded trained model from {args.load_trained}!")
     # print num of parameters
