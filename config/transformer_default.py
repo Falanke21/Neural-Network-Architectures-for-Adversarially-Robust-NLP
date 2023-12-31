@@ -9,6 +9,7 @@ class TransformerConfig:
     # Paragramcf word embedding settings
     PARAGRAMCF_DIR = '/vol/bitbucket/fh422/paragramcf'
     NUM_EPOCHS = 50
+    NUM_ADV_EPOCHS = 1  # Number of adversarial training epochs
     MAX_SEQ_LENGTH = 150
     BATCH_SIZE = 200
     LEARNING_RATE = 1e-4
@@ -41,3 +42,7 @@ class TransformerConfig:
     POSITIONAL_ENCODING = True  # Default is True
     FFN_TYPE = 'standard'  # 'standard' or 'glu'
     MH_TYPE = 'split'  # 'split' or 'parallel'
+
+    # An extra regularization term for sum of ReLU outputs
+    RELU_REGULARIZATION = False
+    RELU_REGULARIZATION_LAMBDA = 1e-5

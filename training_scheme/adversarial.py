@@ -169,6 +169,9 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
 
         model.train()
         # forward
+        # A temporary fix for device mismatch when running on parallel
+        if model.embedding.weight.device != data.device:
+            model.to(data.device)
         outputs = model(data)
         loss = criterion(outputs, labels)
         # backward
@@ -181,12 +184,6 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
         optimizer.step()
         del data, labels, outputs, _
         torch.cuda.empty_cache()
-
-        # update tqdm with loss value every 100 batches
-        if (i+1) % 100 == 0:
-            # if (i+1) % (Config.BATCH_SIZE * 3) == 0:
-            tqdm.write(f"Batch {i+1}/{len(train_loader)}, \
-                        Batch Loss: {loss.item():.4f}")
             
     # save model to at_model.pt
     # Note: in adv training we save the model at every 1/10 of each training
