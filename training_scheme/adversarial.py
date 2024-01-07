@@ -9,7 +9,7 @@ from tqdm import tqdm
 from textattack import Attacker
 
 from textattack import AttackArgs
-from textattack.attack_recipes import TextFoolerJin2019
+from textattack.attack_recipes import TextFoolerJin2019, A2TYoo2021, DeepWordBugGao2018, PWWSRen2019
 from textattack.attack_results import (
     FailedAttackResult,
     MaximizedAttackResult,
@@ -22,7 +22,28 @@ from utils.model_factory import ModelWithSigmoid
 from project.utils import tokenizer
 
 
-def _generate_attacked_texts(model_wrapper, train_dataset):
+def _get_recipe_and_budget(Config) -> (str, int):
+    """
+    Return attack recipe and query budget specified in Config,
+    or default to textfooler and 100.
+    """
+    # Get attack recipe from Config if specified, default to textfooler
+    if hasattr(Config, 'ADV_TRAIN_ATTACK_RECIPE'):
+        attack_recipe = Config.ADV_TRAIN_ATTACK_RECIPE
+    else:
+        attack_recipe = "textfooler"
+    # Get query budget from Config if specified, default to 100
+    if hasattr(Config, 'ADV_TRAIN_QUERY_BUDGET'):
+        if Config.ADV_TRAIN_QUERY_BUDGET == None:
+            query_budget = None
+        else:
+            query_budget = int(Config.ADV_TRAIN_QUERY_BUDGET)
+    else:
+        query_budget = 100
+    return attack_recipe, query_budget
+
+
+def _generate_attacked_texts(model_wrapper, train_dataset, Config):
     """
     Adapted from https://github.com/Falanke21/TextAttack/blob/master/textattack/trainer.py
     Generate adversarial examples using attacker.
@@ -32,21 +53,30 @@ def _generate_attacked_texts(model_wrapper, train_dataset):
         train_dataset: training dataset wrapped by textattack.datasets.Dataset
         epoch: current epoch of training
     """
-
-    attack = TextFoolerJin2019.build(model_wrapper)
+    attack_recipe, query_budget = _get_recipe_and_budget(Config)
+    if attack_recipe == "textfooler":
+        attack = TextFoolerJin2019.build(model_wrapper)
+    elif attack_recipe == "a2t":
+        attack = A2TYoo2021.build(model_wrapper)
+    elif attack_recipe == "deepwordbug":
+        attack = DeepWordBugGao2018.build(model_wrapper)
+    elif attack_recipe == "pwws":
+        attack = PWWSRen2019.build(model_wrapper)
+    else:
+        raise ValueError(f"Unknown attack recipe {attack_recipe}")
     num_train_adv_examples = len(train_dataset)
     # generate example for all of training data.
     attack_args = AttackArgs(
         num_examples=num_train_adv_examples,
         num_examples_offset=0,
-        query_budget=100,
+        query_budget=query_budget,
         shuffle=False,
         parallel=False,
         num_workers_per_device=1,
         disable_stdout=True,
         silent=True,
     )
-    attack_args.attack_recipe = "textfooler"
+    attack_args.attack_recipe = attack_recipe
     attack_args.model_cache_size = 0
     attack_args.constraint_cache_size = 0
 
@@ -94,7 +124,7 @@ def create_ta_dataset(text_lst, labels_lst, max_char_length=1500):
     return train_dataset
 
 
-def text_to_adv_data(model, model_tokenizer, text, labels):
+def text_to_adv_data(model, model_tokenizer, text, labels, Config):
     """
     Prepare and generate adversarial examples for adversarial training.
     """
@@ -111,7 +141,7 @@ def text_to_adv_data(model, model_tokenizer, text, labels):
     # Generate adversarial examples
     with torch.no_grad():
         attacked_texts = _generate_attacked_texts(
-            model_wrapper, train_dataset)
+            model_wrapper, train_dataset, Config)
 
     # need to convert attacked_texts to a tensor of size (batch_size, max_seq_length)
     # Convert text to ids
@@ -156,7 +186,7 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
         model.eval()
         # Generate adversarial examples
         data = text_to_adv_data(
-            model, model_tokenizer, text, labels)
+            model, model_tokenizer, text, labels, Config)
         # Now do the real training
         data = data.to(device)
         labels = labels.unsqueeze(1).float()  # (batch_size, 1)
