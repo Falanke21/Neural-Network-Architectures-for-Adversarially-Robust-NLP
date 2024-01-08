@@ -83,7 +83,7 @@ def standard_training(model, Config, device, args, train_loader, val_loader):
             outputs = model(data)
             loss = criterion(outputs, labels)
             # ReLU regularization if necessary
-            if hasattr(model, 'relu_regularization'):
+            if hasattr(Config, 'RELU_REGULARIZATION') and Config.RELU_REGULARIZATION:
                 loss = model.relu_regularization(Config, loss)
 
             total_loss += loss.item()
