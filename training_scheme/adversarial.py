@@ -221,7 +221,7 @@ def adversarial_training(model, Config, device, args, train_loader, val_loader, 
     print(f"Saving model to {args.output_dir}/at_model.pt")
     torch.save(model.state_dict(), f'{args.output_dir}/at_model.pt')
 
-    # evaluate on validation set every 100 batches
+    # evaluate on validation set after every training
     model.eval()
     with torch.no_grad():
         total_loss = total = TP = TN = 0
