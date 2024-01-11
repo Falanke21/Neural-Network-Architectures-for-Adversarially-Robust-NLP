@@ -6,7 +6,7 @@
 
 # Usage:
 # os.environ['MODEL_CHOICE'] = 'transformer'
-# command = 'python validation.py --csv-folder data/yelp-polarity --output-dir tran/baseline/15head'
+# command = 'python validation.py --csv-folder data/yelp-polarity --output-dir tran/baseline/15head <--adversarial>'
 
 import argparse
 import csv
@@ -105,27 +105,24 @@ def run_ta_calulate_acc_under_attack(model_path) -> float:
     return get_acc_under_attack(data)
 
 
-def find_model_path_for_current_epoch(model, checkpoint_dir, epoch) -> str:
+def find_model_path_for_current_epoch(model, checkpoint_dir, epoch, adversarial) -> str:
     """
     Find the model path for the current epoch
     and load the model from that path to the model object
     Return the model path as string, or None if the model path is not found
     """
-    # TODO Change: Hacky way to find model path from 2 cases: normal and adversarial training
-    model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch}.pt'
+    if adversarial:
+        model_path = f'{checkpoint_dir}/at_model_{epoch}.pt'
+    else:
+        # normal training
+        model_path = f'{checkpoint_dir}/{os.environ["MODEL_CHOICE"]}_model_epoch{epoch}.pt'
     print(f"Loading model from {model_path}")
     try:
         model.load_state_dict(torch.load(model_path))
     # if the epoch is not found, we simply skip it
     except FileNotFoundError:
-        print(f"Could not find {model_path}, trying to see if it's adversarial training")
-        model_path = f'{checkpoint_dir}/at_model_{epoch}.pt'
-        print(f"Loading model from {model_path}")
-        try:
-            model.load_state_dict(torch.load(model_path))
-        except FileNotFoundError:
-            print(f"Still could not find {model_path}, skipping epoch {epoch}")
-            return None
+        print(f"Could not find {model_path}, skipping epoch {epoch}")
+        return None
     return model_path
 
 
@@ -136,8 +133,15 @@ def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model,
     # create a dict to accumulate the results of every n epochs
     # dict key: epoch, value: (standard accuracy, accuracy under textfooler)
     validation_results = {}
-    # if adversarial training, we only have 10 splits
-    total_epochs = 10 if adversarial else Config.NUM_EPOCHS
+    # adversarial training and normal training have different total epochs in Config
+    if adversarial:
+        if hasattr(Config, 'NUM_ADV_EPOCHS'):
+            total_epochs = Config.NUM_ADV_EPOCHS * 10
+        else:
+            total_epochs = 10  # default to 10 splits
+    else:
+        # normal training
+        total_epochs = Config.NUM_EPOCHS
     # create a csv file with header to store the results of every n epochs
     with open(f'{args.output_dir}/model_selection_result.csv', 'a') as f:
         writer = csv.writer(f)
@@ -158,7 +162,7 @@ def calculate_all_validation_results(Config, args, checkpoint_dir, vocab, model,
     for epoch in range(n, total_epochs + 1, n):
         print(f'\n#####\nValidating epoch {epoch}/{total_epochs}\n#####\n')
 
-        model_path = find_model_path_for_current_epoch(model, checkpoint_dir, epoch)
+        model_path = find_model_path_for_current_epoch(model, checkpoint_dir, epoch, adversarial)
         # If this epoch is not found, we skip it
         if not model_path:
             continue

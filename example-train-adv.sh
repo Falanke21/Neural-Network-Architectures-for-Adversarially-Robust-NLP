@@ -68,6 +68,8 @@ do
       k=$((j-1))
       q=$((i-1))
       n=$(($k*10+$q))
+      # n = n + 1, we want to save the model as at_model_1.pt, at_model_2.pt, ...
+      n=$((n+1))
       cp $1/at_model.pt $1/checkpoints/at_model_$n.pt
   done
 done
