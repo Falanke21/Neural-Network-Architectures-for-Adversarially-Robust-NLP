@@ -15,6 +15,7 @@ from .attentions.relu_value_cosformer_attention import ReVCosAttention
 from .attentions.nega_relu_attention import NREVAttention
 from .attentions.sigmoid_attention import SigVAttention
 from .attentions.tanh_attention import TanhVAttention
+from .attentions.abs_value_attention import AbsVAttention
 
 
 def get_attention_by_config(Config):
@@ -74,5 +75,7 @@ def get_attention_by_config(Config):
         attention = SigVAttention()
     elif attention_type == 'tanhva':
         attention = TanhVAttention()
+    elif attention_type == 'absva':
+        attention = AbsVAttention()
 
     return attention, q_same_as_k
