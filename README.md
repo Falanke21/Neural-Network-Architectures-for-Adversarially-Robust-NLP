@@ -2,6 +2,8 @@
 
 ### Despite advancements in Deep Learning, adversarial attacks remain problematic, including NLP and transformer models. This project assesses various self-attention mechanisms to enhance transformer robustness against adversarial attacks in NLP.
 
+Full PDF link: https://github.com/Falanke21/Neural-Network-Architectures-for-Adversarially-Robust-NLP/blob/master/Neural%20Network%20Architectures%20for%20Adversarially%20Robust%20NLP.pdf
+
 ## RNN & LSTM vs. Transformer:
 Comparing sequential models like RNN and LSTM with the parallel processing of transformers.
 
